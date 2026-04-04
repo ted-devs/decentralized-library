@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'src/features/auth/presentation/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,11 +35,7 @@ class DecentralizedLibraryApp extends ConsumerWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(
-          child: Text('Decentralized Library - Auth Setup Pending'),
-        ),
-      ),
+      home: const AuthWrapper(),
     );
   }
 }

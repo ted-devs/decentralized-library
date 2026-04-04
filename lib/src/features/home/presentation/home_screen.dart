@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/auth_service.dart';
 import '../../bookshelf/presentation/bookshelf_screen.dart';
 import '../../bookshelf/data/bookshelf_repository.dart';
+import '../../communities/presentation/communities_hub_screen.dart';
+import '../../library/presentation/requests_hub_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -82,14 +84,14 @@ class HomeScreen extends ConsumerWidget {
               'Communities',
               'Join or manage local library groups.',
               Icons.people,
-              const Placeholder(child: Scaffold(body: Center(child: Text('Communities Screen Placeholder')))),
+              const CommunitiesHubScreen(),
             ),
             _buildNavLink(
               context,
               'Borrowing Requests',
               'Check status of pending requests.',
               Icons.request_page,
-              const Placeholder(child: Scaffold(body: Center(child: Text('Requests Screen Placeholder')))),
+              const RequestsHubScreen(),
             ),
             _buildNavLink(
               context,

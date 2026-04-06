@@ -166,100 +166,63 @@ class HomeScreen extends ConsumerWidget {
             const Icon(Icons.push_pin, size: 16, color: Colors.blue),
           ],
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 100,
-          child: allCommunitiesAsync.when(
-            data: (communities) {
-              final pinned = communities
-                  .where((c) => pinnedIds.contains(c.id))
-                  .toList();
-              if (pinned.isEmpty)
-                return const Center(
-                  child: Text('No pinned communities found.'),
-                );
+        const SizedBox(height: 8),
+        allCommunitiesAsync.when(
+          data: (communities) {
+            final pinned = communities
+                .where((c) => pinnedIds.contains(c.id))
+                .toList();
 
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: pinned.length,
-                itemBuilder: (context, index) {
-                  final community = pinned[index];
-                  return Container(
-                    width: 180,
-                    margin: const EdgeInsets.only(right: 12),
-                    child: InkWell(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              CommunityDetailScreen(community: community),
-                        ),
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primaryContainer.withAlpha(200),
-                              theme.colorScheme.primaryContainer,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.primary.withAlpha(30),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withAlpha(40),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.people_alt_rounded,
-                              color: theme.colorScheme.onPrimaryContainer,
-                              size: 20,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              community.name,
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'Tap to enter',
-                              style: TextStyle(
-                                color: theme.colorScheme.onPrimaryContainer
-                                    .withAlpha(200),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
+            if (pinned.isEmpty) return const SizedBox.shrink();
+
+            return Column(
+              children: pinned.map((community) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                  color: theme.colorScheme.primaryContainer.withAlpha(40),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 0,
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor: theme.colorScheme.primary,
+                      radius: 16,
+                      child: const Icon(
+                        Icons.people_alt_rounded,
+                        size: 16,
+                        color: Colors.white,
                       ),
                     ),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Text('Error loading pins'),
-          ),
+                    title: Text(
+                      community.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: const Text(
+                      'Quick Access',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, size: 18),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            CommunityDetailScreen(community: community),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const LinearProgressIndicator(),
+          error: (e, st) => const Text('Error loading pins'),
         ),
       ],
     );

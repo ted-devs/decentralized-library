@@ -30,7 +30,39 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Community Info')),
+      appBar: AppBar(
+        title: const Text('Community Info'),
+        actions: [
+          Consumer(
+            builder: (context, ref, _) {
+              final appUser = ref.watch(appUserProvider).value;
+              if (appUser == null) return const SizedBox.shrink();
+              final isPinned = appUser.pinnedCommunities.contains(widget.community.id);
+              return IconButton(
+                icon: Icon(
+                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  color: isPinned ? Colors.blue : null,
+                ),
+                onPressed: () async {
+                  try {
+                    await ref.read(communityRepositoryProvider).togglePinCommunity(
+                      appUser.uid,
+                      widget.community.id,
+                      !isPinned,
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+                      );
+                    }
+                  }
+                },
+              );
+            },
+          ),
+        ],
+      ),
       body: membershipsAsync.when(
         data: (memberships) {
           final communityMemberships = memberships.where((m) => m.communityId == widget.community.id).toList();

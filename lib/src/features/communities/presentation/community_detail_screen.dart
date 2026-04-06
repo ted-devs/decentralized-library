@@ -115,7 +115,7 @@ class _CommunityLibraryView extends ConsumerWidget {
                 url: book.coverUrl,
                 width: 40,
                 height: 60,
-                useCache: false,
+                useCache: true,
               ),
               title: Text(book.title),
               subtitle: Text(book.author),
@@ -138,23 +138,27 @@ class _CommunityLibrarySkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? Colors.grey[800]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[700]! : Colors.grey[100]!;
+
     return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: 5,
       itemBuilder: (context, index) => ListTile(
         leading: Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: baseColor,
+          highlightColor: highlightColor,
           child: Container(width: 40, height: 60, color: Colors.white),
         ),
         title: Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: baseColor,
+          highlightColor: highlightColor,
           child: Container(width: 150, height: 12, color: Colors.white),
         ),
         subtitle: Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: baseColor,
+          highlightColor: highlightColor,
           child: Container(width: 100, height: 10, color: Colors.white),
         ),
       ),

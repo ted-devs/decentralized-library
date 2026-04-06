@@ -75,12 +75,6 @@ class CommunityDetailScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  if (!isAdmin && membership != null)
-                    IconButton(
-                      icon: const Icon(Icons.exit_to_app, color: Colors.red),
-                      tooltip: 'Leave Community',
-                      onPressed: () => _showLeaveDialog(context, ref, membership.id),
-                    ),
                 ],
                 bottom: const TabBar(
                   tabs: [
@@ -114,12 +108,6 @@ class CommunityDetailScreen extends ConsumerWidget {
                   );
                 },
               ),
-              if (membership != null)
-                IconButton(
-                  icon: const Icon(Icons.exit_to_app, color: Colors.red),
-                  tooltip: 'Leave Community',
-                  onPressed: () => _showLeaveDialog(context, ref, membership.id),
-                ),
             ],
           ),
           body: _CommunityLibraryView(community: community),
@@ -128,30 +116,6 @@ class CommunityDetailScreen extends ConsumerWidget {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
-  }
-  Future<void> _showLeaveDialog(BuildContext context, WidgetRef ref, String membershipId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Community?'),
-        content: const Text('Are you sure you want to leave this community? You will lose access to the shared library.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Leave', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await ref.read(communityRepositoryProvider).leaveCommunity(membershipId);
-      if (context.mounted) {
-        Navigator.pop(context); // Go back to hub
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left community.')));
-      }
-    }
   }
 }
 

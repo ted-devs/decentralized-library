@@ -108,6 +108,17 @@ class CommunityInfoScreen extends ConsumerWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
+                const SizedBox(height: 16),
+                if (isApproved && !isAdmin)
+                  OutlinedButton.icon(
+                    onPressed: () => _showLeaveDialog(context, ref, membership!.id),
+                    icon: const Icon(Icons.exit_to_app, color: Colors.red),
+                    label: const Text('Leave Community', style: TextStyle(color: Colors.red)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
               ],
             ),
           );
@@ -116,6 +127,31 @@ class CommunityInfoScreen extends ConsumerWidget {
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
     );
+  }
+
+  Future<void> _showLeaveDialog(BuildContext context, WidgetRef ref, String membershipId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Community?'),
+        content: const Text('Are you sure you want to leave this community? You will lose access to the shared library.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Leave', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ref.read(communityRepositoryProvider).leaveCommunity(membershipId);
+      if (context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left community.')));
+      }
+    }
   }
 
   Widget _buildStatChip(BuildContext context, IconData icon, String label) {

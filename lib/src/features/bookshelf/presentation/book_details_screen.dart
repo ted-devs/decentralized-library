@@ -17,6 +17,7 @@ class BookDetailsScreen extends ConsumerStatefulWidget {
 
 class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
   bool _isLoading = false;
+  bool _isDescriptionExpanded = false;
 
   Future<void> _toggleShareability(bool value) async {
     setState(() => _isLoading = true);
@@ -290,7 +291,55 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
             ],
             Text('About this book', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(widget.book.description ?? 'No description available.', style: theme.textTheme.bodyMedium),
+            Builder(
+              builder: (context) {
+                final description = widget.book.description ?? 'No description available.';
+                final canToggle = description.length > 200;
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      tween: Tween<double>(begin: 0, end: _isDescriptionExpanded ? 1 : 0),
+                      builder: (context, value, child) {
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          constraints: BoxConstraints(
+                            maxHeight: _isDescriptionExpanded ? 1000 : 120,
+                          ),
+                          child: ShaderMask(
+                            shaderCallback: (rect) {
+                              return LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black, 
+                                  Color.lerp(Colors.transparent, Colors.black, value)!
+                                ],
+                                stops: const [0.7, 1.0],
+                              ).createShader(rect);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: Text(
+                              description, 
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (canToggle)
+                      TextButton(
+                        onPressed: () => setState(() => _isDescriptionExpanded = !_isDescriptionExpanded),
+                        child: Text(_isDescriptionExpanded ? 'Read Less' : 'Read More'),
+                      ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

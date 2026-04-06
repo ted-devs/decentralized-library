@@ -37,17 +37,23 @@ class CommunitiesHubScreen extends ConsumerWidget {
           return allCommunitiesAsync.when(
             data: (allCommunities) {
               final membershipMap = {for (var m in memberships) m.communityId: m};
-              
-              final myCommunities = allCommunities.where((c) => membershipMap.containsKey(c.id)).toList();
-              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id)).toList();
+              final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
+              final joinedCommunities = allCommunities.where((c) => membershipMap.containsKey(c.id) && c.adminId != user?.uid).toList();
+              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id) && c.adminId != user?.uid).toList();
 
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (myCommunities.isNotEmpty) ...[
-                    _buildSectionHeader('My Communities'),
+                  if (managedCommunities.isNotEmpty) ...[
+                    _buildSectionHeader('Managed Communities'),
                     const SizedBox(height: 8),
-                    ...myCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    ...managedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    const SizedBox(height: 24),
+                  ],
+                  if (joinedCommunities.isNotEmpty) ...[
+                    _buildSectionHeader('Joined Communities'),
+                    const SizedBox(height: 8),
+                    ...joinedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
                     const SizedBox(height: 24),
                   ],
                   if (otherCommunities.isNotEmpty) ...[

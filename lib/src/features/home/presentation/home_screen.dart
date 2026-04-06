@@ -53,16 +53,6 @@ class HomeScreen extends ConsumerWidget {
               ),
             const SizedBox(height: 24),
 
-            // Pinned Communities (Quick Access)
-            if (appUser != null && appUser.pinnedCommunities.isNotEmpty) ...[
-              _buildPinnedCommunitiesRow(
-                context,
-                ref,
-                appUser.pinnedCommunities,
-              ),
-              const SizedBox(height: 32),
-            ],
-
             // Summary Stats Cards
             bookshelfAsync.when(
               data: (items) {
@@ -107,6 +97,16 @@ class HomeScreen extends ConsumerWidget {
               error: (e, st) => Text('Error loading stats: $e'),
             ),
             const SizedBox(height: 32),
+
+            // Pinned Communities (Quick Access)
+            if (appUser != null && appUser.pinnedCommunities.isNotEmpty) ...[
+              _buildPinnedCommunitiesRow(
+                context,
+                ref,
+                appUser.pinnedCommunities,
+              ),
+              const SizedBox(height: 32),
+            ],
 
             // Navigation Links
             Text(

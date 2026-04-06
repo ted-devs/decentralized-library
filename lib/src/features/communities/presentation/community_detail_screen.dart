@@ -4,6 +4,7 @@ import 'package:decentralized_library/src/features/auth/application/auth_service
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
+import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 
@@ -16,8 +17,25 @@ final communityPendingRequestsProvider = StreamProvider.family<List<Membership>,
   return ref.watch(communityRepositoryProvider).watchPendingRequests(communityId);
 });
 
-final memberBooksProvider = StreamProvider.family<List, String>((ref, userId) {
+final memberBooksProvider = StreamProvider.family<List<Book>, String>((ref, userId) {
   return ref.watch(bookshelfRepositoryProvider).watchOwnedBooks(userId);
+});
+
+final communityLibraryProvider = StreamProvider.family<List<Book>, String>((ref, communityId) {
+  final user = ref.watch(authStateProvider).value;
+  final membersAsync = ref.watch(communityMembersProvider(communityId));
+  
+  return membersAsync.when(
+    data: (members) {
+      final otherMemberIds = members
+          .where((m) => m.userId != user?.uid)
+          .map((m) => m.userId)
+          .toList();
+      return ref.watch(bookshelfRepositoryProvider).watchCommunityLibrary(otherMemberIds);
+    },
+    loading: () => const Stream.empty(),
+    error: (e, st) => Stream.error(e),
+  );
 });
 
 class CommunityDetailScreen extends ConsumerWidget {
@@ -129,48 +147,17 @@ class _CommunityLibraryView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final membersAsync = ref.watch(communityMembersProvider(community.id));
+    final libraryAsync = ref.watch(communityLibraryProvider(community.id));
 
-    return membersAsync.when(
-      data: (members) {
-        if (members.isEmpty) return const Center(child: Text('No members yet.'));
+    return libraryAsync.when(
+      data: (books) {
+        if (books.isEmpty) return const Center(child: Text('No books shared in this community yet.'));
         
         return ListView.builder(
-          itemCount: members.length,
+          itemCount: books.length,
           itemBuilder: (context, index) {
-            final memberId = members[index].userId;
-            return _MemberBooksSection(memberId: memberId);
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text('Error: $e')),
-    );
-  }
-}
-
-class _MemberBooksSection extends ConsumerWidget {
-  final String memberId;
-  const _MemberBooksSection({required this.memberId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final booksAsync = ref.watch(memberBooksProvider(memberId));
-
-    return booksAsync.when(
-      data: (books) {
-        final shareableBooks = books.where((b) => b.isShareable).toList();
-        if (shareableBooks.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text('Member Collection (${memberId.substring(0, 5)}...)', 
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey)),
-            ),
-            ...shareableBooks.map((book) => ListTile(
+            final book = books[index];
+            return ListTile(
               leading: book.coverUrl != null 
                   ? Image.network(book.coverUrl!, width: 40, height: 60, fit: BoxFit.cover) 
                   : const Icon(Icons.book),
@@ -180,16 +167,17 @@ class _MemberBooksSection extends ConsumerWidget {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
               ),
-            )),
-            const Divider(),
-          ],
+            );
+          },
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (e, st) => const SizedBox.shrink(),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => Center(child: Text('Error: $e')),
     );
   }
 }
+
+
 
 class _CommunityMembersView extends ConsumerWidget {
   final Community community;

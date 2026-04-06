@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/auth_service.dart';
-import '../../bookshelf/presentation/bookshelf_screen.dart';
 import '../../bookshelf/data/bookshelf_repository.dart';
-import '../../communities/presentation/communities_hub_screen.dart';
 import '../../communities/presentation/community_detail_screen.dart';
 import '../../communities/data/community_repository.dart';
-import '../../library/presentation/requests_hub_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -108,35 +105,7 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 32),
             ],
 
-            // Navigation Links
-            Text(
-              'Quick Links',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildNavLink(
-              context,
-              'My Bookshelf',
-              'Manage your personal collection.',
-              Icons.library_books,
-              const BookshelfScreen(),
-            ),
-            _buildNavLink(
-              context,
-              'Communities Hub',
-              'Join or manage local library groups.',
-              Icons.people,
-              const CommunitiesHubScreen(),
-            ),
-            _buildNavLink(
-              context,
-              'Borrowing Requests',
-              'Check status of pending requests.',
-              Icons.request_page,
-              const RequestsHubScreen(),
-            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -260,28 +229,6 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildNavLink(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Widget destination,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => destination)),
       ),
     );
   }

@@ -203,7 +203,9 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                       Text('by ${widget.book.author}', style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
                       const SizedBox(height: 12),
                       if (widget.book.publishedYear != null)
-                        Text('Published: ${widget.book.publishedYear}', style: theme.textTheme.bodySmall),
+                        Text('Published: ${widget.book.publishedYear!.split('-')[0]}', style: theme.textTheme.bodySmall),
+                      if (widget.book.publisher != null)
+                        Text('Publisher: ${widget.book.publisher}', style: theme.textTheme.bodySmall),
                       if (widget.book.language != null)
                         Text('Language: ${widget.book.language}', style: theme.textTheme.bodySmall),
                     ],

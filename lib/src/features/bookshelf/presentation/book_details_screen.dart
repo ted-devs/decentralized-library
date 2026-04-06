@@ -5,6 +5,7 @@ import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repo
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/library/domain/book_transaction.dart';
 import 'package:decentralized_library/src/features/library/data/transaction_repository.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 
 class BookDetailsScreen extends ConsumerStatefulWidget {
   final Book book;
@@ -17,6 +18,7 @@ class BookDetailsScreen extends ConsumerStatefulWidget {
 
 class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
   bool _isLoading = false;
+  bool _isDescriptionExpanded = false;
 
   Future<void> _toggleShareability(bool value) async {
     setState(() => _isLoading = true);
@@ -119,15 +121,54 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
     }
   }
 
+  Future<void> _addToShelf() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = ref.read(authStateProvider).value;
+      if (user == null) return;
+      
+      final bookToAdd = Book(
+        id: '', 
+        ownerId: user.uid,
+        title: widget.book.title,
+        author: widget.book.author,
+        isbn: widget.book.isbn,
+        coverUrl: widget.book.coverUrl,
+        description: widget.book.description,
+        publisher: widget.book.publisher,
+        publishedYear: widget.book.publishedYear,
+        language: widget.book.language,
+      );
+
+      await ref.read(bookshelfRepositoryProvider).addBook(bookToAdd);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Book added to your shelf!')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add book: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value;
-    final isOwner = widget.book.ownerId == user?.uid;
+    final isPreview = widget.book.id.isEmpty;
+    final isOwner = !isPreview && widget.book.ownerId == user?.uid;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Book Details'),
+        title: Text(isPreview ? 'Preview Book' : 'Book Details'),
         actions: [
           if (isOwner && widget.transaction == null)
             IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: _isLoading ? null : _removeBook),
@@ -141,18 +182,15 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.book.coverUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(widget.book.coverUrl!, width: 100, height: 150, fit: BoxFit.cover),
-                  )
-                else
-                  Container(
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: BookCover(
+                    url: widget.book.coverUrl,
                     width: 100,
                     height: 150,
-                    decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.book, size: 50),
+                    useCache: isOwner,
                   ),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -163,7 +201,9 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                       Text('by ${widget.book.author}', style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[600])),
                       const SizedBox(height: 12),
                       if (widget.book.publishedYear != null)
-                        Text('Published: ${widget.book.publishedYear}', style: theme.textTheme.bodySmall),
+                        Text('Published: ${widget.book.publishedYear!.split('-')[0]}', style: theme.textTheme.bodySmall),
+                      if (widget.book.publisher != null)
+                        Text('Publisher: ${widget.book.publisher}', style: theme.textTheme.bodySmall),
                       if (widget.book.language != null)
                         Text('Language: ${widget.book.language}', style: theme.textTheme.bodySmall),
                     ],
@@ -225,7 +265,19 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
               ],
               const SizedBox(height: 24),
             ],
-            if (!isOwner && widget.transaction == null && widget.book.isShareable) ...[
+            if (isPreview) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _addToShelf,
+                  icon: const Icon(Icons.add_to_photos_rounded),
+                  label: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Add to My Shelf'),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            if (!isPreview && !isOwner && widget.transaction == null && widget.book.isShareable) ...[
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -239,7 +291,55 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
             ],
             Text('About this book', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text(widget.book.description ?? 'No description available.', style: theme.textTheme.bodyMedium),
+            Builder(
+              builder: (context) {
+                final description = widget.book.description ?? 'No description available.';
+                final canToggle = description.length > 200;
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      tween: Tween<double>(begin: 0, end: _isDescriptionExpanded ? 1 : 0),
+                      builder: (context, value, child) {
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          constraints: BoxConstraints(
+                            maxHeight: _isDescriptionExpanded ? 1000 : 120,
+                          ),
+                          child: ShaderMask(
+                            shaderCallback: (rect) {
+                              return LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black, 
+                                  Color.lerp(Colors.transparent, Colors.black, value)!
+                                ],
+                                stops: const [0.7, 1.0],
+                              ).createShader(rect);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: Text(
+                              description, 
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (canToggle)
+                      TextButton(
+                        onPressed: () => setState(() => _isDescriptionExpanded = !_isDescriptionExpanded),
+                        child: Text(_isDescriptionExpanded ? 'Read Less' : 'Read More'),
+                      ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

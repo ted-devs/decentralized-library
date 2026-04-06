@@ -4,6 +4,7 @@ import 'package:decentralized_library/src/features/auth/application/auth_service
 import 'package:decentralized_library/src/features/bookshelf/application/google_books_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 
 class AddBookScreen extends ConsumerStatefulWidget {
   const AddBookScreen({super.key});
@@ -118,6 +119,13 @@ class _AddBookScreenState extends ConsumerState<AddBookScreen> {
                                 color: Colors.blue,
                                 onPressed: () => _addSelectedBook(book),
                               ),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => BookDetailsScreen(book: book),
+                                  ),
+                                );
+                              },
                             );
                           },
                         ),

@@ -42,6 +42,21 @@ final appUserProvider = StreamProvider<AppUser?>((ref) {
   );
 });
 
+/// Fetches a specific user profile by their ID.
+final userProvider = StreamProvider.family<AppUser?, String>((ref, userId) {
+  return ref
+      .watch(firestoreProvider)
+      .collection('users')
+      .doc(userId)
+      .snapshots()
+      .map((snapshot) {
+        if (snapshot.exists && snapshot.data() != null) {
+          return AppUser.fromMap(snapshot.data()!, snapshot.id);
+        }
+        return null;
+      });
+});
+
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(ref.watch(firebaseAuthProvider));
 });
@@ -58,9 +73,7 @@ class AuthService {
   /// Ensures the Google Sign In plugin is initialized for Android.
   Future<void> _ensureInitialized() async {
     if (!_isInitialized) {
-      await _googleSignIn.initialize(
-        serverClientId: '970996280701-ilaoa8uhrdptqaa37d2vi3lipsml0mfj.apps.googleusercontent.com',
-      );
+      await _googleSignIn.initialize();
       _isInitialized = true;
     }
   }
@@ -70,14 +83,10 @@ class AuthService {
       await _ensureInitialized();
 
       // For Android, authenticate() triggers the native one-tap or account picker
-      final GoogleSignInAccount? googleUser = await _googleSignIn
-          .authenticate();
-
-      if (googleUser == null) return; // User canceled
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
       // Explicitly await the authentication details
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       // Access tokens for Firebase credential
       final OAuthCredential credential = GoogleAuthProvider.credential(

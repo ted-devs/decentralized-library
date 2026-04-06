@@ -5,6 +5,7 @@ import 'package:decentralized_library/src/features/communities/domain/community.
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'community_detail_screen.dart';
+import 'community_info_screen.dart';
 import 'create_community_screen.dart';
 
 class CommunitiesHubScreen extends ConsumerWidget {
@@ -37,17 +38,30 @@ class CommunitiesHubScreen extends ConsumerWidget {
           return allCommunitiesAsync.when(
             data: (allCommunities) {
               final membershipMap = {for (var m in memberships) m.communityId: m};
-              
-              final myCommunities = allCommunities.where((c) => membershipMap.containsKey(c.id)).toList();
-              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id)).toList();
+              final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
+              final joinedCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.approved && c.adminId != user?.uid).toList();
+              final pendingCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.pending).toList();
+              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id) && c.adminId != user?.uid).toList();
 
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (myCommunities.isNotEmpty) ...[
-                    _buildSectionHeader('My Communities'),
+                  if (managedCommunities.isNotEmpty) ...[
+                    _buildSectionHeader('Managed Communities'),
                     const SizedBox(height: 8),
-                    ...myCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    ...managedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    const SizedBox(height: 24),
+                  ],
+                  if (joinedCommunities.isNotEmpty) ...[
+                    _buildSectionHeader('Joined Communities'),
+                    const SizedBox(height: 8),
+                    ...joinedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    const SizedBox(height: 24),
+                  ],
+                  if (pendingCommunities.isNotEmpty) ...[
+                    _buildSectionHeader('Pending Requests'),
+                    const SizedBox(height: 8),
+                    ...pendingCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
                     const SizedBox(height: 24),
                   ],
                   if (otherCommunities.isNotEmpty) ...[
@@ -89,7 +103,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
         title: Text(community.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(community.description, maxLines: 2, overflow: TextOverflow.ellipsis),
         trailing: isApproved
-            ? const Icon(Icons.chevron_right)
+            ? const Icon(Icons.arrow_forward_ios_rounded, size: 16)
             : isPending
                 ? Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -99,37 +113,19 @@ class CommunitiesHubScreen extends ConsumerWidget {
                     ),
                     child: const Text('Pending', style: TextStyle(color: Colors.orange, fontSize: 12)),
                   )
-                : ElevatedButton(
-                    onPressed: () => _joinCommunity(context, ref, community),
-                    child: const Text('Join'),
-                  ),
-        onTap: isApproved
-            ? () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => CommunityDetailScreen(community: community)),
-                );
-              }
-            : null,
+                : const Icon(Icons.info_outline_rounded, color: Colors.grey),
+        onTap: () {
+          if (isApproved) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CommunityDetailScreen(community: community)),
+            );
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+            );
+          }
+        },
       ),
     );
-  }
-
-  Future<void> _joinCommunity(BuildContext context, WidgetRef ref, Community community) async {
-    try {
-      final user = ref.read(authStateProvider).value;
-      if (user == null) return;
-      
-      await ref.read(communityRepositoryProvider).requestToJoin(user.uid, community);
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Join request sent for ${community.name}!')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to join: $e')));
-      }
-    }
   }
 }

@@ -4,21 +4,13 @@ import 'package:decentralized_library/src/features/auth/application/auth_service
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
-import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
+import 'community_info_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
+import 'user_profile_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
-// Helper providers to turn streams into AsyncValues for the UI
-final communityMembersProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
-  return ref.watch(communityRepositoryProvider).watchCommunityMembers(communityId);
-});
-
-final communityPendingRequestsProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
-  return ref.watch(communityRepositoryProvider).watchPendingRequests(communityId);
-});
-
-final memberBooksProvider = StreamProvider.family<List, String>((ref, userId) {
-  return ref.watch(bookshelfRepositoryProvider).watchOwnedBooks(userId);
-});
+// (Providers moved to community_repository.dart)
 
 class CommunityDetailScreen extends ConsumerWidget {
   final Community community;
@@ -26,100 +18,79 @@ class CommunityDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authStateProvider).value;
-    final isAdmin = community.adminId == user?.uid;
-    
-    // Check membership status
-    final membershipsAsync = user != null ? ref.watch(userMembershipsProvider(user.uid)) : const AsyncValue<List<Membership>>.loading();
-    
-    return membershipsAsync.when(
-      data: (memberships) {
-        final membership = memberships.where((m) => m.communityId == community.id).firstOrNull;
-        final isApproved = membership?.status == MembershipStatus.approved;
-
-        if (!isAdmin && !isApproved) {
-          return Scaffold(
-            appBar: AppBar(title: Text(community.name)),
-            body: const Center(child: Text('You must be an approved member to view this community.')),
-          );
-        }
-
-        if (isAdmin) {
-          return DefaultTabController(
-            length: 3,
-            child: Scaffold(
-              appBar: AppBar(
-                title: Text(community.name),
-                actions: [
-                  if (!isAdmin && membership != null)
-                    IconButton(
-                      icon: const Icon(Icons.exit_to_app, color: Colors.red),
-                      tooltip: 'Leave Community',
-                      onPressed: () => _showLeaveDialog(context, ref, membership.id),
-                    ),
-                ],
-                bottom: const TabBar(
-                  tabs: [
-                    Tab(text: 'Library'),
-                    Tab(text: 'Members'),
-                    Tab(text: 'Requests'),
-                  ],
-                ),
-              ),
-              body: TabBarView(
-                children: [
-                  _CommunityLibraryView(community: community),
-                  _CommunityMembersView(community: community),
-                  _CommunityRequestsView(community: community),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Standard member view - No tabs, just library
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(community.name),
-            actions: [
-              if (membership != null)
-                IconButton(
-                  icon: const Icon(Icons.exit_to_app, color: Colors.red),
-                  tooltip: 'Leave Community',
-                  onPressed: () => _showLeaveDialog(context, ref, membership.id),
-                ),
-            ],
-          ),
-          body: _CommunityLibraryView(community: community),
-        );
-      },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
-    );
-  }
-  Future<void> _showLeaveDialog(BuildContext context, WidgetRef ref, String membershipId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Community?'),
-        content: const Text('Are you sure you want to leave this community? You will lose access to the shared library.'),
+    // The Scaffold shell is rendered immediately to ensure smooth navigation transitions.
+    // It does not watch ANY changing data top-level to prevent redundant build calls during push/pop.
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(community.name),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Leave', style: TextStyle(color: Colors.red)),
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+              );
+            },
           ),
         ],
       ),
-    );
+      body: Consumer(
+        builder: (context, ref, child) {
+          final user = ref.watch(authStateProvider).value;
+          if (user == null) return const Center(child: Text('Please log in.'));
 
-    if (confirm == true) {
-      await ref.read(communityRepositoryProvider).leaveCommunity(membershipId);
-      if (context.mounted) {
-        Navigator.pop(context); // Go back to hub
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left community.')));
-      }
-    }
+          // Use whenData to transform the whole membership list into just the one we care about.
+          final membershipsAsync = ref.watch(userMembershipsProvider(user.uid));
+          final isAdmin = community.adminId == user.uid;
+
+          return membershipsAsync.when(
+            data: (memberships) {
+              final membership = memberships.where((m) => m.communityId == community.id).firstOrNull;
+              final isApproved = isAdmin || membership?.status == MembershipStatus.approved;
+
+              if (!isApproved) {
+                return const Center(child: Text('You must be an approved member to view this community.'));
+              }
+
+              if (isAdmin) {
+                return DefaultTabController(
+                  length: 3,
+                  child: Column(
+                    children: [
+                      Material(
+                        color: Theme.of(context).cardColor,
+                        elevation: 1, // Add subtle shadow for premium feel
+                        child: const TabBar(
+                          tabs: [
+                            Tab(text: 'Library'),
+                            Tab(text: 'Members'),
+                            Tab(text: 'Requests'),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _CommunityLibraryView(community: community),
+                            _CommunityMembersView(community: community),
+                            _CommunityRequestsView(community: community),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Standard member view
+              return _CommunityLibraryView(community: community);
+            },
+            loading: () => const _CommunityLibrarySkeleton(),
+            error: (e, st) => Center(child: Text('Error: $e')),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -129,64 +100,64 @@ class _CommunityLibraryView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final membersAsync = ref.watch(communityMembersProvider(community.id));
+    final libraryAsync = ref.watch(communityLibraryProvider(community.id));
 
-    return membersAsync.when(
-      data: (members) {
-        if (members.isEmpty) return const Center(child: Text('No members yet.'));
+    return libraryAsync.when(
+      data: (books) {
+        if (books.isEmpty) return const Center(child: Text('No books shared in this community yet.'));
         
         return ListView.builder(
-          itemCount: members.length,
+          itemCount: books.length,
           itemBuilder: (context, index) {
-            final memberId = members[index].userId;
-            return _MemberBooksSection(memberId: memberId);
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text('Error: $e')),
-    );
-  }
-}
-
-class _MemberBooksSection extends ConsumerWidget {
-  final String memberId;
-  const _MemberBooksSection({required this.memberId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final booksAsync = ref.watch(memberBooksProvider(memberId));
-
-    return booksAsync.when(
-      data: (books) {
-        final shareableBooks = books.where((b) => b.isShareable).toList();
-        if (shareableBooks.isEmpty) return const SizedBox.shrink();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Text('Member Collection (${memberId.substring(0, 5)}...)', 
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.grey)),
-            ),
-            ...shareableBooks.map((book) => ListTile(
-              leading: book.coverUrl != null 
-                  ? Image.network(book.coverUrl!, width: 40, height: 60, fit: BoxFit.cover) 
-                  : const Icon(Icons.book),
+            final book = books[index];
+            return ListTile(
+              leading: BookCover(
+                url: book.coverUrl,
+                width: 40,
+                height: 60,
+                useCache: false,
+              ),
               title: Text(book.title),
               subtitle: Text(book.author),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
               ),
-            )),
-            const Divider(),
-          ],
+            );
+          },
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (e, st) => const SizedBox.shrink(),
+      loading: () => const _CommunityLibrarySkeleton(),
+      error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _CommunityLibrarySkeleton extends StatelessWidget {
+  const _CommunityLibrarySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: 5,
+      itemBuilder: (context, index) => ListTile(
+        leading: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(width: 40, height: 60, color: Colors.white),
+        ),
+        title: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(width: 150, height: 12, color: Colors.white),
+        ),
+        subtitle: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(width: 100, height: 10, color: Colors.white),
+        ),
+      ),
     );
   }
 }
@@ -201,14 +172,35 @@ class _CommunityMembersView extends ConsumerWidget {
 
     return membersAsync.when(
       data: (members) {
+        final regularMembers = members.where((m) => m.userId != community.adminId).toList();
+        
+        if (regularMembers.isEmpty) {
+          return const Center(child: Text('No members yet.'));
+        }
+
         return ListView.builder(
-          itemCount: members.length,
+          itemCount: regularMembers.length,
           itemBuilder: (context, index) {
-            final member = members[index];
+            final member = regularMembers[index];
+            final userAsync = ref.watch(userProvider(member.userId));
+            
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text('User ${member.userId.substring(0, 8)}'),
-              subtitle: Text(member.userId == community.adminId ? 'Administrator' : 'Member'),
+              title: userAsync.when(
+                data: (user) => Text(user?.displayName ?? 'Unknown User'),
+                loading: () => const Text('Loading...'),
+                error: (_, __) => const Text('Error loading user'),
+              ),
+              onTap: userAsync.value != null ? () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => UserProfileScreen(
+                      user: userAsync.value!,
+                      membership: member,
+                    ),
+                  ),
+                );
+              } : null,
             );
           },
         );
@@ -235,8 +227,14 @@ class _CommunityRequestsView extends ConsumerWidget {
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index];
+            final userAsync = ref.watch(userProvider(request.userId));
+
             return ListTile(
-              title: Text('User ${request.userId.substring(0, 8)}'),
+              title: userAsync.when(
+                data: (user) => Text(user?.displayName ?? 'Unknown User'),
+                loading: () => const Text('Loading...'),
+                error: (_, __) => const Text('Error loading user'),
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

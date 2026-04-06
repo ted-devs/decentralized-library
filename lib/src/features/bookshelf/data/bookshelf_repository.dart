@@ -21,6 +21,22 @@ class BookshelfRepository {
             .toList());
   }
 
+  Stream<List<Book>> watchCommunityLibrary(List<String> userIds) {
+    if (userIds.isEmpty) return Stream.value([]);
+    
+    // Firestore whereIn has a limit of 30
+    final limitedIds = userIds.take(30).toList();
+    
+    return _firestore
+        .collection('books')
+        .where('ownerId', whereIn: limitedIds)
+        .where('isShareable', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Book.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
   Stream<List<BookTransaction>> watchLentTransactions(String userId) {
     return _firestore
         .collection('transactions')
@@ -110,6 +126,10 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
       return items;
     },
   );
+});
+
+final memberBooksProvider = StreamProvider.family<List<Book>, String>((ref, userId) {
+  return ref.watch(bookshelfRepositoryProvider).watchOwnedBooks(userId);
 });
 
 class BookshelfItem {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/add_book_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 
 class BookshelfScreen extends ConsumerWidget {
   const BookshelfScreen({super.key});
@@ -66,28 +67,13 @@ class BookshelfScreen extends ConsumerWidget {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: book.coverUrl != null
-                        ? Opacity(
-                            opacity: item.isLent ? 0.5 : 1.0,
-                            child: Image.network(
-                              book.coverUrl!,
-                              width: 50,
-                              height: 75,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, _) => Container(
-                                width: 50,
-                                height: 75,
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.book),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            width: 50,
-                            height: 75,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.book),
-                          ),
+                    child: Opacity(
+                      opacity: item.isLent ? 0.5 : 1.0,
+                      child: BookCover(
+                        url: book.coverUrl,
+                        useCache: true,
+                      ),
+                    ),
                   ),
                   title: Text(
                     book.title,

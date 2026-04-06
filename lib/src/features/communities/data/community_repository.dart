@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/community.dart';
 import '../domain/membership.dart';
+import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
+import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
+import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 
 
 final communityRepositoryProvider = Provider((ref) => CommunityRepository(FirebaseFirestore.instance));
@@ -13,8 +16,9 @@ class CommunityRepository {
   Future<String> createCommunity(Community community) async {
     final docRef = await _firestore.collection('communities').add(community.toMap());
     
-    // Auto-approve admin as member
-    await _firestore.collection('memberships').add({
+    // Auto-approve admin as member using deterministic ID
+    final membershipId = '${community.adminId}_${docRef.id}';
+    await _firestore.collection('memberships').doc(membershipId).set({
       'communityId': docRef.id,
       'userId': community.adminId,
       'status': MembershipStatus.approved.name,
@@ -62,12 +66,13 @@ class CommunityRepository {
   }
 
   Future<void> requestToJoin(String userId, Community community) async {
-    await _firestore.collection('memberships').add({
+    final membershipId = '${userId}_${community.id}';
+    await _firestore.collection('memberships').doc(membershipId).set({
       'communityId': community.id,
       'userId': userId,
       'status': MembershipStatus.pending.name,
       'joinedAt': FieldValue.serverTimestamp(),
-    });
+    }, SetOptions(merge: true));
   }
 
   Future<void> updateMembershipStatus(String membershipId, MembershipStatus status) async {
@@ -88,4 +93,30 @@ final userMembershipsProvider = StreamProvider.family<List<Membership>, String>(
 
 final allCommunitiesProvider = StreamProvider<List<Community>>((ref) {
   return ref.watch(communityRepositoryProvider).watchAllCommunities();
+});
+
+// Helper providers to turn streams into AsyncValues for the UI
+final communityMembersProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
+  return ref.watch(communityRepositoryProvider).watchCommunityMembers(communityId);
+});
+
+final communityPendingRequestsProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
+  return ref.watch(communityRepositoryProvider).watchPendingRequests(communityId);
+});
+
+final communityLibraryProvider = StreamProvider.family<List<Book>, String>((ref, communityId) {
+  final user = ref.watch(authStateProvider).value;
+  final membersAsync = ref.watch(communityMembersProvider(communityId));
+  
+  return membersAsync.when(
+    data: (members) {
+      final otherMemberIds = members
+          .where((m) => m.userId != user?.uid)
+          .map((m) => m.userId)
+          .toList();
+      return ref.watch(bookshelfRepositoryProvider).watchCommunityLibrary(otherMemberIds);
+    },
+    loading: () => const Stream.empty(),
+    error: (e, st) => Stream.error(e),
+  );
 });

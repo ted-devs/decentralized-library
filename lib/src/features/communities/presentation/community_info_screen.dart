@@ -6,19 +6,26 @@ import 'package:decentralized_library/src/features/communities/domain/community.
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'community_detail_screen.dart';
 
-class CommunityInfoScreen extends ConsumerWidget {
+class CommunityInfoScreen extends ConsumerStatefulWidget {
   final Community community;
   const CommunityInfoScreen({super.key, required this.community});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CommunityInfoScreen> createState() => _CommunityInfoScreenState();
+}
+
+class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
+  bool _isRequesting = false;
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value;
-    final isAdmin = community.adminId == user?.uid;
+    final isAdmin = widget.community.adminId == user?.uid;
     final membershipsAsync = user != null 
         ? ref.watch(userMembershipsProvider(user.uid)) 
         : const AsyncValue<List<Membership>>.loading();
-    final membersAsync = ref.watch(communityMembersProvider(community.id));
-    final adminProfileAsync = ref.watch(userProvider(community.adminId));
+    final membersAsync = ref.watch(communityMembersProvider(widget.community.id));
+    final adminProfileAsync = ref.watch(userProvider(widget.community.adminId));
 
     final theme = Theme.of(context);
 
@@ -26,10 +33,11 @@ class CommunityInfoScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Community Info')),
       body: membershipsAsync.when(
         data: (memberships) {
-          final membership = memberships.where((m) => m.communityId == community.id).firstOrNull;
-          final status = membership?.status;
-          final isApproved = status == MembershipStatus.approved || isAdmin;
-          final isPending = status == MembershipStatus.pending;
+          final communityMemberships = memberships.where((m) => m.communityId == widget.community.id).toList();
+          
+          final isApproved = isAdmin || communityMemberships.any((m) => m.status == MembershipStatus.approved);
+          final isPending = communityMemberships.any((m) => m.status == MembershipStatus.pending);
+          final membership = communityMemberships.firstOrNull;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -44,7 +52,7 @@ class CommunityInfoScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  community.name,
+                  widget.community.name,
                   style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
@@ -63,6 +71,16 @@ class CommunityInfoScreen extends ConsumerWidget {
                         error: (_, __) => '?',
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    _buildStatChip(
+                      context,
+                      Icons.menu_book_rounded,
+                      ref.watch(communityLibraryProvider(widget.community.id)).when(
+                        data: (books) => '${books.length} Book${books.length == 1 ? '' : 's'}',
+                        loading: () => '...',
+                        error: (_, __) => '?',
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -70,7 +88,7 @@ class CommunityInfoScreen extends ConsumerWidget {
                 // Description
                 Text('About', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                Text(community.description, style: theme.textTheme.bodyMedium),
+                Text(widget.community.description, style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 24),
                 
                 // Admin Info
@@ -88,11 +106,13 @@ class CommunityInfoScreen extends ConsumerWidget {
                 const SizedBox(height: 48),
 
                 // Primary Action Button
-                if (isPending)
+                if (isPending || _isRequesting)
                   ElevatedButton.icon(
                     onPressed: null,
-                    icon: const Icon(Icons.hourglass_empty_rounded),
-                    label: const Text('Membership Pending'),
+                    icon: _isRequesting 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.hourglass_empty_rounded),
+                    label: Text(_isRequesting ? 'Requesting...' : 'Membership Pending'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -100,7 +120,7 @@ class CommunityInfoScreen extends ConsumerWidget {
                   )
                 else if (!isApproved)
                   ElevatedButton.icon(
-                    onPressed: () => _joinCommunity(context, ref),
+                    onPressed: () => _joinCommunity(context),
                     icon: const Icon(Icons.group_add_rounded),
                     label: const Text('Join Community'),
                     style: ElevatedButton.styleFrom(
@@ -111,7 +131,7 @@ class CommunityInfoScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 if (isApproved && !isAdmin)
                   OutlinedButton.icon(
-                    onPressed: () => _showLeaveDialog(context, ref, membership!.id),
+                    onPressed: () => _showLeaveDialog(context, membership!.id),
                     icon: const Icon(Icons.exit_to_app, color: Colors.red),
                     label: const Text('Leave Community', style: TextStyle(color: Colors.red)),
                     style: OutlinedButton.styleFrom(
@@ -127,31 +147,6 @@ class CommunityInfoScreen extends ConsumerWidget {
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
     );
-  }
-
-  Future<void> _showLeaveDialog(BuildContext context, WidgetRef ref, String membershipId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Community?'),
-        content: const Text('Are you sure you want to leave this community? You will lose access to the shared library.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Leave', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await ref.read(communityRepositoryProvider).leaveCommunity(membershipId);
-      if (context.mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left community.')));
-      }
-    }
   }
 
   Widget _buildStatChip(BuildContext context, IconData icon, String label) {
@@ -172,21 +167,51 @@ class CommunityInfoScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _joinCommunity(BuildContext context, WidgetRef ref) async {
+  Future<void> _joinCommunity(BuildContext context) async {
     try {
       final user = ref.read(authStateProvider).value;
       if (user == null) return;
       
-      await ref.read(communityRepositoryProvider).requestToJoin(user.uid, community);
+      setState(() => _isRequesting = true);
+      await ref.read(communityRepositoryProvider).requestToJoin(user.uid, widget.community);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Join request sent for ${community.name}!')),
+          SnackBar(content: Text('Join request sent for ${widget.community.name}!')),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to join: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRequesting = false);
+      }
+    }
+  }
+
+  Future<void> _showLeaveDialog(BuildContext context, String membershipId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Community?'),
+        content: const Text('Are you sure you want to leave this community? You will lose access to the shared library.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Leave', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ref.read(communityRepositoryProvider).leaveCommunity(membershipId);
+      if (context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left community.')));
       }
     }
   }

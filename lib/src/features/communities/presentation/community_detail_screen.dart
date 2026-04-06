@@ -5,36 +5,10 @@ import 'package:decentralized_library/src/features/communities/data/community_re
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'community_info_screen.dart';
-import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
-import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 import 'user_profile_screen.dart';
 
-// Helper providers to turn streams into AsyncValues for the UI
-final communityMembersProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
-  return ref.watch(communityRepositoryProvider).watchCommunityMembers(communityId);
-});
-
-final communityPendingRequestsProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
-  return ref.watch(communityRepositoryProvider).watchPendingRequests(communityId);
-});
-
-final communityLibraryProvider = StreamProvider.family<List<Book>, String>((ref, communityId) {
-  final user = ref.watch(authStateProvider).value;
-  final membersAsync = ref.watch(communityMembersProvider(communityId));
-  
-  return membersAsync.when(
-    data: (members) {
-      final otherMemberIds = members
-          .where((m) => m.userId != user?.uid)
-          .map((m) => m.userId)
-          .toList();
-      return ref.watch(bookshelfRepositoryProvider).watchCommunityLibrary(otherMemberIds);
-    },
-    loading: () => const Stream.empty(),
-    error: (e, st) => Stream.error(e),
-  );
-});
+// (Providers moved to community_repository.dart)
 
 class CommunityDetailScreen extends ConsumerWidget {
   final Community community;

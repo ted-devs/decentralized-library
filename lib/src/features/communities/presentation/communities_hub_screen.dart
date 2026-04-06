@@ -39,7 +39,8 @@ class CommunitiesHubScreen extends ConsumerWidget {
             data: (allCommunities) {
               final membershipMap = {for (var m in memberships) m.communityId: m};
               final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
-              final joinedCommunities = allCommunities.where((c) => membershipMap.containsKey(c.id) && c.adminId != user?.uid).toList();
+              final joinedCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.approved && c.adminId != user?.uid).toList();
+              final pendingCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.pending).toList();
               final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id) && c.adminId != user?.uid).toList();
 
               return ListView(
@@ -55,6 +56,12 @@ class CommunitiesHubScreen extends ConsumerWidget {
                     _buildSectionHeader('Joined Communities'),
                     const SizedBox(height: 8),
                     ...joinedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    const SizedBox(height: 24),
+                  ],
+                  if (pendingCommunities.isNotEmpty) ...[
+                    _buildSectionHeader('Pending Requests'),
+                    const SizedBox(height: 8),
+                    ...pendingCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
                     const SizedBox(height: 24),
                   ],
                   if (otherCommunities.isNotEmpty) ...[

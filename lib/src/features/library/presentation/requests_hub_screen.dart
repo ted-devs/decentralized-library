@@ -128,7 +128,7 @@ class _TransactionTile extends ConsumerWidget {
             url: book.coverUrl,
             width: 40,
             height: 60,
-            useCache: false,
+            useCache: true,
           ),
           title: Text(book.title),
           subtitle: Text('Status: ${transaction.status.name.toUpperCase()}'),

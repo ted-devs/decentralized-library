@@ -5,6 +5,7 @@ import 'package:decentralized_library/src/features/library/data/transaction_repo
 import 'package:decentralized_library/src/features/library/domain/book_transaction.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 final incomingRequestsProvider = StreamProvider<List<BookTransaction>>((ref) {
@@ -123,14 +124,12 @@ class _TransactionTile extends ConsumerWidget {
         if (book == null) return const ListTile(title: Text('Book not found'));
 
         return ListTile(
-          leading: book.coverUrl != null
-              ? Image.network(
-                  book.coverUrl!,
-                  width: 40,
-                  height: 60,
-                  fit: BoxFit.cover,
-                )
-              : const Icon(Icons.book),
+          leading: BookCover(
+            url: book.coverUrl,
+            width: 40,
+            height: 60,
+            useCache: false,
+          ),
           title: Text(book.title),
           subtitle: Text('Status: ${transaction.status.name.toUpperCase()}'),
           trailing: const Icon(Icons.chevron_right),

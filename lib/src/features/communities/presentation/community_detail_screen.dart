@@ -6,7 +6,9 @@ import 'package:decentralized_library/src/features/communities/domain/community.
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'community_info_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 import 'user_profile_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
 // (Providers moved to community_repository.dart)
 
@@ -16,79 +18,78 @@ class CommunityDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authStateProvider).value;
-    final isAdmin = community.adminId == user?.uid;
-    
-    // Check membership status
-    final membershipsAsync = user != null ? ref.watch(userMembershipsProvider(user.uid)) : const AsyncValue<List<Membership>>.loading();
-    
-    return membershipsAsync.when(
-      data: (memberships) {
-        final membership = memberships.where((m) => m.communityId == community.id).firstOrNull;
-        final isApproved = membership?.status == MembershipStatus.approved;
-
-        if (!isAdmin && !isApproved) {
-          return Scaffold(
-            appBar: AppBar(title: Text(community.name)),
-            body: const Center(child: Text('You must be an approved member to view this community.')),
-          );
-        }
-
-        if (isAdmin) {
-          return DefaultTabController(
-            length: 3,
-            child: Scaffold(
-              appBar: AppBar(
-                title: Text(community.name),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.info_outline_rounded),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
-                      );
-                    },
-                  ),
-                ],
-                bottom: const TabBar(
-                  tabs: [
-                    Tab(text: 'Library'),
-                    Tab(text: 'Members'),
-                    Tab(text: 'Requests'),
-                  ],
-                ),
-              ),
-              body: TabBarView(
-                children: [
-                  _CommunityLibraryView(community: community),
-                  _CommunityMembersView(community: community),
-                  _CommunityRequestsView(community: community),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Standard member view - No tabs, just library
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(community.name),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.info_outline_rounded),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
-                  );
-                },
-              ),
-            ],
+    // The Scaffold shell is rendered immediately to ensure smooth navigation transitions.
+    // It does not watch ANY changing data top-level to prevent redundant build calls during push/pop.
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(community.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+              );
+            },
           ),
-          body: _CommunityLibraryView(community: community),
-        );
-      },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
+        ],
+      ),
+      body: Consumer(
+        builder: (context, ref, child) {
+          final user = ref.watch(authStateProvider).value;
+          if (user == null) return const Center(child: Text('Please log in.'));
+
+          // Use whenData to transform the whole membership list into just the one we care about.
+          final membershipsAsync = ref.watch(userMembershipsProvider(user.uid));
+          final isAdmin = community.adminId == user.uid;
+
+          return membershipsAsync.when(
+            data: (memberships) {
+              final membership = memberships.where((m) => m.communityId == community.id).firstOrNull;
+              final isApproved = isAdmin || membership?.status == MembershipStatus.approved;
+
+              if (!isApproved) {
+                return const Center(child: Text('You must be an approved member to view this community.'));
+              }
+
+              if (isAdmin) {
+                return DefaultTabController(
+                  length: 3,
+                  child: Column(
+                    children: [
+                      Material(
+                        color: Theme.of(context).cardColor,
+                        elevation: 1, // Add subtle shadow for premium feel
+                        child: const TabBar(
+                          tabs: [
+                            Tab(text: 'Library'),
+                            Tab(text: 'Members'),
+                            Tab(text: 'Requests'),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _CommunityLibraryView(community: community),
+                            _CommunityMembersView(community: community),
+                            _CommunityRequestsView(community: community),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Standard member view
+              return _CommunityLibraryView(community: community);
+            },
+            loading: () => const _CommunityLibrarySkeleton(),
+            error: (e, st) => Center(child: Text('Error: $e')),
+          );
+        },
+      ),
     );
   }
 }
@@ -110,9 +111,12 @@ class _CommunityLibraryView extends ConsumerWidget {
           itemBuilder: (context, index) {
             final book = books[index];
             return ListTile(
-              leading: book.coverUrl != null 
-                  ? Image.network(book.coverUrl!, width: 40, height: 60, fit: BoxFit.cover) 
-                  : const Icon(Icons.book),
+              leading: BookCover(
+                url: book.coverUrl,
+                width: 40,
+                height: 60,
+                useCache: false,
+              ),
               title: Text(book.title),
               subtitle: Text(book.author),
               trailing: const Icon(Icons.chevron_right),
@@ -123,13 +127,40 @@ class _CommunityLibraryView extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const _CommunityLibrarySkeleton(),
       error: (e, st) => Center(child: Text('Error: $e')),
     );
   }
 }
 
+class _CommunityLibrarySkeleton extends StatelessWidget {
+  const _CommunityLibrarySkeleton();
 
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: 5,
+      itemBuilder: (context, index) => ListTile(
+        leading: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(width: 40, height: 60, color: Colors.white),
+        ),
+        title: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(width: 150, height: 12, color: Colors.white),
+        ),
+        subtitle: Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(width: 100, height: 10, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
 
 class _CommunityMembersView extends ConsumerWidget {
   final Community community;

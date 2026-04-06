@@ -5,6 +5,7 @@ import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repo
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/library/domain/book_transaction.dart';
 import 'package:decentralized_library/src/features/library/data/transaction_repository.dart';
+import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 
 class BookDetailsScreen extends ConsumerStatefulWidget {
   final Book book;
@@ -181,18 +182,15 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.book.coverUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(widget.book.coverUrl!, width: 100, height: 150, fit: BoxFit.cover),
-                  )
-                else
-                  Container(
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: BookCover(
+                    url: widget.book.coverUrl,
                     width: 100,
                     height: 150,
-                    decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(8)),
-                    child: const Icon(Icons.book, size: 50),
+                    useCache: isOwner,
                   ),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(

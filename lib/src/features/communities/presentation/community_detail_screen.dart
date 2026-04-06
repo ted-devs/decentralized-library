@@ -7,6 +7,7 @@ import 'package:decentralized_library/src/features/communities/domain/membership
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
+import 'user_profile_screen.dart';
 
 // Helper providers to turn streams into AsyncValues for the UI
 final communityMembersProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
@@ -15,10 +16,6 @@ final communityMembersProvider = StreamProvider.family<List<Membership>, String>
 
 final communityPendingRequestsProvider = StreamProvider.family<List<Membership>, String>((ref, communityId) {
   return ref.watch(communityRepositoryProvider).watchPendingRequests(communityId);
-});
-
-final memberBooksProvider = StreamProvider.family<List<Book>, String>((ref, userId) {
-  return ref.watch(bookshelfRepositoryProvider).watchOwnedBooks(userId);
 });
 
 final communityLibraryProvider = StreamProvider.family<List<Book>, String>((ref, communityId) {
@@ -208,6 +205,16 @@ class _CommunityMembersView extends ConsumerWidget {
                 loading: () => const Text('Loading...'),
                 error: (_, __) => const Text('Error loading user'),
               ),
+              onTap: userAsync.value != null ? () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => UserProfileScreen(
+                      user: userAsync.value!,
+                      membership: member,
+                    ),
+                  ),
+                );
+              } : null,
             );
           },
         );

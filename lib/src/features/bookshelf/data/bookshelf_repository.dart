@@ -128,6 +128,10 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
   );
 });
 
+final memberBooksProvider = StreamProvider.family<List<Book>, String>((ref, userId) {
+  return ref.watch(bookshelfRepositoryProvider).watchOwnedBooks(userId);
+});
+
 class BookshelfItem {
   final Book book;
   final BookTransaction? transaction;

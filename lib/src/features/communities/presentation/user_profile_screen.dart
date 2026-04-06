@@ -5,7 +5,6 @@ import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
-import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 
 class UserProfileScreen extends ConsumerWidget {
   final AppUser user;

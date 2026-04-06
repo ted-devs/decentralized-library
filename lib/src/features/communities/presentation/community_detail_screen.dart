@@ -4,6 +4,7 @@ import 'package:decentralized_library/src/features/auth/application/auth_service
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
+import 'community_info_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
@@ -66,6 +67,14 @@ class CommunityDetailScreen extends ConsumerWidget {
               appBar: AppBar(
                 title: Text(community.name),
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.info_outline_rounded),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+                      );
+                    },
+                  ),
                   if (!isAdmin && membership != null)
                     IconButton(
                       icon: const Icon(Icons.exit_to_app, color: Colors.red),
@@ -97,6 +106,14 @@ class CommunityDetailScreen extends ConsumerWidget {
           appBar: AppBar(
             title: Text(community.name),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.info_outline_rounded),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+                  );
+                },
+              ),
               if (membership != null)
                 IconButton(
                   icon: const Icon(Icons.exit_to_app, color: Colors.red),

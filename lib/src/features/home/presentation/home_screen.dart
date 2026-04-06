@@ -4,7 +4,10 @@ import '../../auth/application/auth_service.dart';
 import '../../bookshelf/presentation/bookshelf_screen.dart';
 import '../../bookshelf/data/bookshelf_repository.dart';
 import '../../communities/presentation/communities_hub_screen.dart';
+import '../../communities/presentation/community_detail_screen.dart';
+import '../../communities/data/community_repository.dart';
 import '../../library/presentation/requests_hub_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -20,14 +23,12 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Dashboard'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () {
-              // Navigate to profile or show simple profile info
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authServiceProvider).signOut(),
           ),
         ],
       ),
@@ -39,13 +40,28 @@ class HomeScreen extends ConsumerWidget {
             // Welcome Section
             Text(
               'Hello, ${appUser?.displayName ?? 'User'}!',
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            Text(
-              '${appUser?.city}, ${appUser?.country}',
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-            ),
+            if (appUser != null && appUser.city.isNotEmpty)
+              Text(
+                '${appUser.city}, ${appUser.country}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
             const SizedBox(height: 24),
+
+            // Pinned Communities (Quick Access)
+            if (appUser != null && appUser.pinnedCommunities.isNotEmpty) ...[
+              _buildPinnedCommunitiesRow(
+                context,
+                ref,
+                appUser.pinnedCommunities,
+              ),
+              const SizedBox(height: 32),
+            ],
 
             // Summary Stats Cards
             bookshelfAsync.when(
@@ -56,21 +72,49 @@ class HomeScreen extends ConsumerWidget {
 
                 return Row(
                   children: [
-                    _buildStatCard(context, 'Borrowed', borrowedCount, Icons.add_circle, Colors.green),
+                    _buildStatCard(
+                      context,
+                      'Borrowed',
+                      borrowedCount,
+                      Icons.add_circle,
+                      Colors.green,
+                    ),
                     const SizedBox(width: 12),
-                    _buildStatCard(context, 'Lent', lentCount, Icons.remove_circle, Colors.red),
+                    _buildStatCard(
+                      context,
+                      'Lent',
+                      lentCount,
+                      Icons.remove_circle,
+                      Colors.red,
+                    ),
                     const SizedBox(width: 12),
-                    _buildStatCard(context, 'Owned', ownedCount, Icons.menu_book, Colors.blue),
+                    _buildStatCard(
+                      context,
+                      'Owned',
+                      ownedCount,
+                      Icons.menu_book,
+                      Colors.blue,
+                    ),
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Text('Error: $e'),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              error: (e, st) => Text('Error loading stats: $e'),
             ),
             const SizedBox(height: 32),
 
             // Navigation Links
-            Text('Quick Access', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Quick Links',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 16),
             _buildNavLink(
               context,
@@ -81,7 +125,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             _buildNavLink(
               context,
-              'Communities',
+              'Communities Hub',
               'Join or manage local library groups.',
               Icons.people,
               const CommunitiesHubScreen(),
@@ -93,20 +137,141 @@ class HomeScreen extends ConsumerWidget {
               Icons.request_page,
               const RequestsHubScreen(),
             ),
-            _buildNavLink(
-              context,
-              'Settings',
-              'Dark mode and Pro status.',
-              Icons.settings,
-              const Placeholder(child: Scaffold(body: Center(child: Text('Settings Screen Placeholder')))),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String label, int count, IconData icon, Color color) {
+  Widget _buildPinnedCommunitiesRow(
+    BuildContext context,
+    WidgetRef ref,
+    List<String> pinnedIds,
+  ) {
+    final allCommunitiesAsync = ref.watch(allCommunitiesProvider);
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Pinned Communities',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Icon(Icons.push_pin, size: 16, color: Colors.blue),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 100,
+          child: allCommunitiesAsync.when(
+            data: (communities) {
+              final pinned = communities
+                  .where((c) => pinnedIds.contains(c.id))
+                  .toList();
+              if (pinned.isEmpty)
+                return const Center(
+                  child: Text('No pinned communities found.'),
+                );
+
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: pinned.length,
+                itemBuilder: (context, index) {
+                  final community = pinned[index];
+                  return Container(
+                    width: 180,
+                    margin: const EdgeInsets.only(right: 12),
+                    child: InkWell(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CommunityDetailScreen(community: community),
+                        ),
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primaryContainer.withAlpha(200),
+                              theme.colorScheme.primaryContainer,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withAlpha(30),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withAlpha(40),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_alt_rounded,
+                              color: theme.colorScheme.onPrimaryContainer,
+                              size: 20,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              community.name,
+                              style: TextStyle(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Tap to enter',
+                              style: TextStyle(
+                                color: theme.colorScheme.onPrimaryContainer
+                                    .withAlpha(200),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Text('Error loading pins'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    int count,
+    IconData icon,
+    Color color,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -119,15 +284,30 @@ class HomeScreen extends ConsumerWidget {
           children: [
             Icon(icon, color: color),
             const SizedBox(height: 8),
-            Text(count.toString(), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            Text(
+              count.toString(),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavLink(BuildContext context, String title, String subtitle, IconData icon, Widget destination) {
+  Widget _buildNavLink(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    Widget destination,
+  ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -136,7 +316,9 @@ class HomeScreen extends ConsumerWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => destination)),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => destination)),
       ),
     );
   }

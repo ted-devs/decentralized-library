@@ -84,6 +84,25 @@ class CommunityRepository {
   Future<void> leaveCommunity(String membershipId) async {
     await _firestore.collection('memberships').doc(membershipId).delete();
   }
+
+  Future<void> togglePinCommunity(String userId, String communityId, bool pin) async {
+    final userRef = _firestore.collection('users').doc(userId);
+    if (pin) {
+      // Limit to 3 pins for clean UI
+      final doc = await userRef.get();
+      final currentPins = List<String>.from(doc.data()?['pinnedCommunities'] ?? []);
+      if (currentPins.length >= 3) {
+        throw Exception('You can only pin up to 3 communities.');
+      }
+      await userRef.update({
+        'pinnedCommunities': FieldValue.arrayUnion([communityId]),
+      });
+    } else {
+      await userRef.update({
+        'pinnedCommunities': FieldValue.arrayRemove([communityId]),
+      });
+    }
+  }
 }
 
 // Providers for the UI

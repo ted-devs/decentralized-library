@@ -8,6 +8,7 @@ class AppUser {
   final bool isPro;
   final bool isAdmin;
   final bool publicContactInfo;
+  final List<String> pinnedCommunities;
 
   AppUser({
     required this.uid,
@@ -19,6 +20,7 @@ class AppUser {
     this.isPro = false,
     this.isAdmin = false,
     this.publicContactInfo = false,
+    this.pinnedCommunities = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -32,6 +34,7 @@ class AppUser {
       'isPro': isPro,
       'isAdmin': isAdmin,
       'publicContactInfo': publicContactInfo,
+      'pinnedCommunities': pinnedCommunities,
     };
   }
 
@@ -46,6 +49,7 @@ class AppUser {
       isPro: map['isPro'] ?? false,
       isAdmin: map['isAdmin'] ?? false,
       publicContactInfo: map['publicContactInfo'] ?? false,
+      pinnedCommunities: List<String>.from(map['pinnedCommunities'] ?? []),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:decentralized_library/src/features/communities/data/community_re
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
+import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'community_detail_screen.dart';
 import 'community_info_screen.dart';
 import 'create_community_screen.dart';
@@ -14,6 +15,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).value;
+    final appUser = ref.watch(appUserProvider).value;
     final allCommunitiesAsync = ref.watch(allCommunitiesProvider);
     final userMembershipsAsync = user != null 
         ? ref.watch(userMembershipsProvider(user.uid)) 
@@ -49,28 +51,26 @@ class CommunitiesHubScreen extends ConsumerWidget {
                   if (managedCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Managed Communities'),
                     const SizedBox(height: 8),
-                    ...managedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    ...managedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
                     const SizedBox(height: 24),
                   ],
                   if (joinedCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Joined Communities'),
                     const SizedBox(height: 8),
-                    ...joinedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    ...joinedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
                     const SizedBox(height: 24),
                   ],
                   if (pendingCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Pending Requests'),
                     const SizedBox(height: 8),
-                    ...pendingCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id])),
+                    ...pendingCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
                     const SizedBox(height: 24),
                   ],
                   if (otherCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Discover More'),
                     const SizedBox(height: 8),
-                    ...otherCommunities.map((c) => _buildCommunityCard(context, ref, c, null)),
+                    ...otherCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
                   ],
-                  if (allCommunities.isEmpty)
-                    const Center(child: Text('No communities found. Create the first one!')),
                 ],
               );
             },
@@ -91,29 +91,58 @@ class CommunitiesHubScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCommunityCard(BuildContext context, WidgetRef ref, Community community, Membership? membership) {
+  Widget _buildCommunityCard(BuildContext context, WidgetRef ref, Community community, Membership? membership, AppUser? appUser) {
     final status = membership?.status;
     final isApproved = status == MembershipStatus.approved;
     final isPending = status == MembershipStatus.pending;
+    final isPinned = appUser?.pinnedCommunities.contains(community.id) ?? false;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         title: Text(community.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(community.description, maxLines: 2, overflow: TextOverflow.ellipsis),
-        trailing: isApproved
-            ? const Icon(Icons.arrow_forward_ios_rounded, size: 16)
-            : isPending
-                ? Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withAlpha(30),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('Pending', style: TextStyle(color: Colors.orange, fontSize: 12)),
-                  )
-                : const Icon(Icons.info_outline_rounded, color: Colors.grey),
+        subtitle: Text(community.description, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (appUser != null)
+              IconButton(
+                icon: Icon(
+                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  size: 20,
+                  color: isPinned ? Colors.blue : Colors.grey,
+                ),
+                onPressed: () async {
+                  try {
+                    await ref.read(communityRepositoryProvider).togglePinCommunity(
+                      appUser.uid,
+                      community.id,
+                      !isPinned,
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+                      );
+                    }
+                  }
+                },
+              ),
+            isApproved
+                ? const Icon(Icons.arrow_forward_ios_rounded, size: 16)
+                : isPending
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withAlpha(30),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('Pending', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                      )
+                    : const Icon(Icons.info_outline_rounded, color: Colors.grey),
+          ],
+        ),
         onTap: () {
           if (isApproved) {
             Navigator.of(context).push(

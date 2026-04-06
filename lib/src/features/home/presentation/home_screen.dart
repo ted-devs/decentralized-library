@@ -132,7 +132,6 @@ class HomeScreen extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Icon(Icons.push_pin, size: 16, color: Colors.blue),
           ],
         ),
         const SizedBox(height: 8),
@@ -161,10 +160,10 @@ class HomeScreen extends ConsumerWidget {
                     leading: CircleAvatar(
                       backgroundColor: theme.colorScheme.primary,
                       radius: 16,
-                      child: const Icon(
+                      child: Icon(
                         Icons.people_alt_rounded,
                         size: 16,
-                        color: Colors.white,
+                        color: theme.colorScheme.onPrimary,
                       ),
                     ),
                     title: Text(

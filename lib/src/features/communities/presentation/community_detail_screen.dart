@@ -189,14 +189,25 @@ class _CommunityMembersView extends ConsumerWidget {
 
     return membersAsync.when(
       data: (members) {
+        final regularMembers = members.where((m) => m.userId != community.adminId).toList();
+        
+        if (regularMembers.isEmpty) {
+          return const Center(child: Text('No members yet.'));
+        }
+
         return ListView.builder(
-          itemCount: members.length,
+          itemCount: regularMembers.length,
           itemBuilder: (context, index) {
-            final member = members[index];
+            final member = regularMembers[index];
+            final userAsync = ref.watch(userProvider(member.userId));
+            
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text('User ${member.userId.substring(0, 8)}'),
-              subtitle: Text(member.userId == community.adminId ? 'Administrator' : 'Member'),
+              title: userAsync.when(
+                data: (user) => Text(user?.displayName ?? 'Unknown User'),
+                loading: () => const Text('Loading...'),
+                error: (_, __) => const Text('Error loading user'),
+              ),
             );
           },
         );
@@ -223,8 +234,14 @@ class _CommunityRequestsView extends ConsumerWidget {
           itemCount: requests.length,
           itemBuilder: (context, index) {
             final request = requests[index];
+            final userAsync = ref.watch(userProvider(request.userId));
+
             return ListTile(
-              title: Text('User ${request.userId.substring(0, 8)}'),
+              title: userAsync.when(
+                data: (user) => Text(user?.displayName ?? 'Unknown User'),
+                loading: () => const Text('Loading...'),
+                error: (_, __) => const Text('Error loading user'),
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -42,6 +42,21 @@ final appUserProvider = StreamProvider<AppUser?>((ref) {
   );
 });
 
+/// Fetches a specific user profile by their ID.
+final userProvider = StreamProvider.family<AppUser?, String>((ref, userId) {
+  return ref
+      .watch(firestoreProvider)
+      .collection('users')
+      .doc(userId)
+      .snapshots()
+      .map((snapshot) {
+        if (snapshot.exists && snapshot.data() != null) {
+          return AppUser.fromMap(snapshot.data()!, snapshot.id);
+        }
+        return null;
+      });
+});
+
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService(ref.watch(firebaseAuthProvider));
 });

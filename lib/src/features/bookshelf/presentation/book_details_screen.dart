@@ -119,15 +119,54 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
     }
   }
 
+  Future<void> _addToShelf() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = ref.read(authStateProvider).value;
+      if (user == null) return;
+      
+      final bookToAdd = Book(
+        id: '', 
+        ownerId: user.uid,
+        title: widget.book.title,
+        author: widget.book.author,
+        isbn: widget.book.isbn,
+        coverUrl: widget.book.coverUrl,
+        description: widget.book.description,
+        publisher: widget.book.publisher,
+        publishedYear: widget.book.publishedYear,
+        language: widget.book.language,
+      );
+
+      await ref.read(bookshelfRepositoryProvider).addBook(bookToAdd);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Book added to your shelf!')),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add book: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value;
-    final isOwner = widget.book.ownerId == user?.uid;
+    final isPreview = widget.book.id.isEmpty;
+    final isOwner = !isPreview && widget.book.ownerId == user?.uid;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Book Details'),
+        title: Text(isPreview ? 'Preview Book' : 'Book Details'),
         actions: [
           if (isOwner && widget.transaction == null)
             IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: _isLoading ? null : _removeBook),
@@ -225,7 +264,19 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
               ],
               const SizedBox(height: 24),
             ],
-            if (!isOwner && widget.transaction == null && widget.book.isShareable) ...[
+            if (isPreview) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _addToShelf,
+                  icon: const Icon(Icons.add_to_photos_rounded),
+                  label: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Add to My Shelf'),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            if (!isPreview && !isOwner && widget.transaction == null && widget.book.isShareable) ...[
               SizedBox(
                 width: double.infinity,
                 height: 50,

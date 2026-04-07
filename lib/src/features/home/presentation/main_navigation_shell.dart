@@ -4,6 +4,7 @@ import 'home_screen.dart';
 import '../../bookshelf/presentation/bookshelf_screen.dart';
 import '../../communities/presentation/communities_hub_screen.dart';
 import '../../library/presentation/requests_hub_screen.dart';
+import '../../notifications/application/badge_service.dart';
 
 /// A Notifier to manage the navigation state.
 /// This matches the recommended pattern for Riverpod 3.0+.
@@ -44,25 +45,31 @@ class MainNavigationShell extends ConsumerWidget {
         onDestinationSelected: (index) {
           ref.read(navigationIndexProvider.notifier).set(index);
         },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
             label: 'Home',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.library_books_outlined),
             selectedIcon: Icon(Icons.library_books),
             label: 'Bookshelf',
           ),
           NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
+            icon: Badge(
+              isLabelVisible: ref.watch(hasPendingMembershipsProvider).value ?? false,
+              child: const Icon(Icons.people_outline),
+            ),
+            selectedIcon: const Icon(Icons.people),
             label: 'Hub',
           ),
           NavigationDestination(
-            icon: Icon(Icons.request_page_outlined),
-            selectedIcon: Icon(Icons.request_page),
+            icon: Badge(
+              isLabelVisible: ref.watch(hasIncomingRequestsProvider).value ?? false,
+              child: const Icon(Icons.request_page_outlined),
+            ),
+            selectedIcon: const Icon(Icons.request_page),
             label: 'Requests',
           ),
         ],

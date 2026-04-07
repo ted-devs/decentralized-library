@@ -60,11 +60,16 @@ class CommunityDetailScreen extends ConsumerWidget {
                       Material(
                         color: Theme.of(context).cardColor,
                         elevation: 1, // Add subtle shadow for premium feel
-                        child: const TabBar(
+                        child: TabBar(
                           tabs: [
-                            Tab(text: 'Library'),
-                            Tab(text: 'Members'),
-                            Tab(text: 'Requests'),
+                            const Tab(text: 'Library'),
+                            const Tab(text: 'Members'),
+                            Tab(
+                              child: Badge(
+                                isLabelVisible: ref.watch(communityPendingRequestsProvider(community.id)).value?.isNotEmpty ?? false,
+                                child: const Text('Requests'),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -244,11 +249,19 @@ class _CommunityRequestsView extends ConsumerWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(request.id, MembershipStatus.approved),
+                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(
+                      request.id, 
+                      MembershipStatus.approved,
+                      communityName: community.name,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(request.id, MembershipStatus.rejected),
+                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(
+                      request.id, 
+                      MembershipStatus.rejected,
+                      communityName: community.name,
+                    ),
                   ),
                 ],
               ),

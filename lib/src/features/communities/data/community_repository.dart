@@ -5,6 +5,7 @@ import '../domain/membership.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
+import 'package:decentralized_library/src/features/notifications/domain/app_notification.dart';
 
 
 final communityRepositoryProvider = Provider((ref) => CommunityRepository(FirebaseFirestore.instance));
@@ -73,12 +74,45 @@ class CommunityRepository {
       'status': MembershipStatus.pending.name,
       'joinedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // Send notification to admin
+    final appUser = await _firestore.collection('users').doc(userId).get();
+    final displayName = appUser.data()?['displayName'] ?? 'A user';
+    
+    await _firestore.collection('notifications').add({
+      'recipientId': community.adminId,
+      'senderId': userId,
+      'type': NotificationType.joinRequest.name,
+      'title': 'New Join Request',
+      'body': '$displayName wants to join ${community.name}',
+      'relatedId': community.id,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
   }
 
-  Future<void> updateMembershipStatus(String membershipId, MembershipStatus status) async {
+  Future<void> updateMembershipStatus(String membershipId, MembershipStatus status, {required String communityName}) async {
     await _firestore.collection('memberships').doc(membershipId).update({
       'status': status.name,
     });
+
+    if (status == MembershipStatus.approved) {
+      final membershipDoc = await _firestore.collection('memberships').doc(membershipId).get();
+      final userId = membershipDoc.data()?['userId'];
+      final communityId = membershipDoc.data()?['communityId'];
+
+      if (userId != null) {
+        await _firestore.collection('notifications').add({
+          'recipientId': userId,
+          'type': NotificationType.membershipApproved.name,
+          'title': 'Membership Approved!',
+          'body': 'You are now a member of $communityName',
+          'relatedId': communityId,
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      }
+    }
   }
 
   Future<void> leaveCommunity(String membershipId) async {

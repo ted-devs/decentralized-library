@@ -5,6 +5,8 @@ import '../../bookshelf/data/bookshelf_repository.dart';
 import '../../communities/presentation/community_detail_screen.dart';
 import '../../communities/data/community_repository.dart';
 import '../../settings/presentation/settings_screen.dart';
+import '../../notifications/data/notification_repository.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,17 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          IconButton(
+            icon: Badge(
+              isLabelVisible: (ref.watch(unreadNotificationsCountProvider(appUser?.uid ?? '')).value ?? 0) > 0,
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             onPressed: () {

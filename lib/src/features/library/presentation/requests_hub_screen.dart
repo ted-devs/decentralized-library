@@ -43,10 +43,20 @@ class RequestsHubScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Requests'),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'To Me (Lending)'),
-              Tab(text: 'By Me (Borrowing)'),
+              Tab(
+                child: Badge(
+                  isLabelVisible: ref.watch(incomingRequestsProvider).value?.isNotEmpty ?? false,
+                  child: const Text('To Me (Lending)'),
+                ),
+              ),
+              Tab(
+                child: Badge(
+                  isLabelVisible: ref.watch(outgoingRequestsProvider).value?.isNotEmpty ?? false,
+                  child: const Text('By Me (Borrowing)'),
+                ),
+              ),
             ],
           ),
         ),

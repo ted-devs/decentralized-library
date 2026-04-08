@@ -94,7 +94,19 @@ class BookshelfRepository {
     
     await _firestore.collection('books').doc(bookId).delete();
   }
+
+  Stream<Book?> watchBook(String bookId) {
+    return _firestore
+        .collection('books')
+        .doc(bookId)
+        .snapshots()
+        .map((doc) => doc.exists ? Book.fromMap(doc.data()!, doc.id) : null);
+  }
 }
+
+final bookProvider = StreamProvider.family<Book?, String>((ref, bookId) {
+  return ref.watch(bookshelfRepositoryProvider).watchBook(bookId);
+});
 
 final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
   final user = ref.watch(authStateProvider).value;

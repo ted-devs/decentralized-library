@@ -239,11 +239,17 @@ class _CommunityRequestsView extends ConsumerWidget {
             final userAsync = ref.watch(userProvider(request.userId));
 
             return ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.person)),
               title: userAsync.when(
                 data: (user) => Text(user?.displayName ?? 'Unknown User'),
                 loading: () => const Text('Loading...'),
                 error: (_, __) => const Text('Error loading user'),
               ),
+              onTap: userAsync.value != null ? () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => UserProfileScreen(user: userAsync.value!)),
+                );
+              } : null,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

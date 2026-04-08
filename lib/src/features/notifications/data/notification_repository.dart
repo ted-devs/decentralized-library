@@ -56,6 +56,10 @@ class NotificationRepository {
   Future<void> sendNotification(AppNotification notification) async {
     await _firestore.collection('notifications').add(notification.toMap());
   }
+
+  Future<void> deleteNotification(String notificationId) async {
+    await _firestore.collection('notifications').doc(notificationId).delete();
+  }
 }
 
 // Providers

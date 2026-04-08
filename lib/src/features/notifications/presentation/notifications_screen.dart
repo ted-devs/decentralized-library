@@ -46,7 +46,21 @@ class NotificationsScreen extends ConsumerWidget {
             separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
             itemBuilder: (context, index) {
               final notification = notifications[index];
-              return _NotificationTile(notification: notification, onRead: () => repo.markAsRead(notification.id));
+              return Dismissible(
+                key: Key(notification.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red[700],
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Icon(Icons.delete_outline, color: Colors.white),
+                ),
+                onDismissed: (_) => repo.deleteNotification(notification.id),
+                child: _NotificationTile(
+                  notification: notification,
+                  onRead: () => repo.markAsRead(notification.id),
+                ),
+              );
             },
           );
         },

@@ -60,6 +60,20 @@ class NotificationRepository {
   Future<void> deleteNotification(String notificationId) async {
     await _firestore.collection('notifications').doc(notificationId).delete();
   }
+
+  Future<void> deleteAllReadNotifications(String userId) async {
+    final read = await _firestore
+        .collection('notifications')
+        .where('recipientId', isEqualTo: userId)
+        .where('isRead', isEqualTo: true)
+        .get();
+    
+    final batch = _firestore.batch();
+    for (var doc in read.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
 }
 
 // Providers

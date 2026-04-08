@@ -15,11 +15,44 @@ class NotificationsScreen extends ConsumerWidget {
 
     final notificationsAsync = ref.watch(userNotificationsProvider(user.uid));
     final repo = ref.read(notificationRepositoryProvider);
+    Future<void> _showDeleteReadConfirmation(BuildContext context, String userId) async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Read Notifications?'),
+          content: const Text('This will permanently remove all notifications you have already read. This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        await repo.deleteAllReadNotifications(userId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Read notifications deleted.')),
+          );
+        }
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
+          IconButton(
+            onPressed: () => _showDeleteReadConfirmation(context, user.uid),
+            icon: const Icon(Icons.delete_sweep_outlined),
+            tooltip: 'Delete all read',
+          ),
           TextButton(
             onPressed: () => repo.markAllAsRead(user.uid),
             child: const Text('Mark all as read'),

@@ -5,6 +5,8 @@ import '../data/notification_repository.dart';
 import '../domain/app_notification.dart';
 import 'package:intl/intl.dart';
 
+import 'package:flutter_slidable/flutter_slidable.dart';
+
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
@@ -79,41 +81,60 @@ class NotificationsScreen extends ConsumerWidget {
             separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16),
             itemBuilder: (context, index) {
               final notification = notifications[index];
-              return Dismissible(
+              return Slidable(
                 key: Key(notification.id),
-                direction: DismissDirection.horizontal,
-                background: Container(
-                  color: notification.isRead ? Colors.blue[100] : Colors.blue[700],
-                  alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(
-                    notification.isRead ? Icons.mark_as_unread : Icons.done_all,
-                    color: notification.isRead ? Colors.blue[900] : Colors.white,
-                  ),
+                startActionPane: ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.25,
+                  children: [
+                    SlidableAction(
+                      onPressed: (_) => repo.updateReadStatus(notification.id, !notification.isRead),
+                      backgroundColor: notification.isRead ? Colors.blue.withAlpha(50) : Colors.blue[700]!,
+                      foregroundColor: notification.isRead ? Colors.blue[900] : Colors.white,
+                      icon: notification.isRead ? Icons.mark_as_unread : Icons.done_all,
+                      label: notification.isRead ? 'Unread' : 'Read',
+                    ),
+                  ],
                 ),
-                secondaryBackground: Container(
-                  color: Colors.red[700],
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Icon(Icons.delete_outline, color: Colors.white),
+                endActionPane: ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.25,
+                  children: [
+                    SlidableAction(
+                      onPressed: (_) => repo.deleteNotification(notification.id),
+                      backgroundColor: Colors.red[700]!,
+                      foregroundColor: Colors.white,
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                    ),
+                  ],
                 ),
-                confirmDismiss: (direction) async {
-                  if (direction == DismissDirection.startToEnd) {
-                    // Swipe Right: Toggle Read Status
-                    await repo.updateReadStatus(notification.id, !notification.isRead);
-                    return false; // Do not dismiss
-                  }
-                  // Swipe Left: Proceed to delete
-                  return true;
-                },
-                onDismissed: (direction) {
-                  if (direction == DismissDirection.endToStart) {
-                    repo.deleteNotification(notification.id);
-                  }
-                },
-                child: _NotificationTile(
-                  notification: notification,
-                  onRead: () => repo.markAsRead(notification.id),
+                child: Builder(
+                  builder: (context) {
+                    return Listener(
+                      onPointerUp: (event) {
+                        final slidable = Slidable.of(context);
+                        if (slidable != null) {
+                          final ratio = slidable.ratio;
+                          // If opened enough (ratio > 0.2 or ratio < -0.2)
+                          if (ratio > 0.15) {
+                            // Start Action Pane (Toggle)
+                            repo.updateReadStatus(notification.id, !notification.isRead);
+                            slidable.close();
+                          } else if (ratio < -0.15) {
+                            // End Action Pane (Delete)
+                            repo.deleteNotification(notification.id);
+                            // No need to close if it's going to be deleted, but safe to do
+                            slidable.close();
+                          }
+                        }
+                      },
+                      child: _NotificationTile(
+                        notification: notification,
+                        onRead: () => repo.markAsRead(notification.id),
+                      ),
+                    );
+                  },
                 ),
               );
             },

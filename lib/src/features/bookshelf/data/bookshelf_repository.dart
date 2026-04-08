@@ -120,7 +120,7 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
         items.add(BookshelfItem(
           book: book,
           transaction: activeLent,
-          isLent: activeLent != null,
+          isLent: activeLent != null && (activeLent.status == TransactionStatus.pickedUp || activeLent.status == TransactionStatus.overdue),
         ));
       }
 

@@ -13,10 +13,10 @@ class TransactionRepository {
     return _firestore
         .collection('transactions')
         .where('ownerId', isEqualTo: userId)
-        .where('isDeletedByOwner', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByOwner) // Local filter for backward compatibility
             .toList());
   }
 
@@ -24,10 +24,10 @@ class TransactionRepository {
     return _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
-        .where('isDeletedByBorrower', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByBorrower) // Local filter for backward compatibility
             .toList());
   }
 
@@ -36,21 +36,18 @@ class TransactionRepository {
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
         .where('bookId', isEqualTo: bookId)
-        .where('isDeletedByBorrower', isEqualTo: false)
         .snapshots()
         .map((snapshot) {
-          final activeDocs = snapshot.docs.where((doc) {
-            final data = doc.data();
-            final statusStr = data['status'] as String?;
-            if (statusStr == null) return false;
-            
-            // Safe parsing to check if it's active (not returned or canceled)
-            final normalized = statusStr.toLowerCase().replaceAll('_', '');
-            return normalized != 'returned' && normalized != 'canceled';
-          });
+          final activeDocs = snapshot.docs
+            .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByBorrower) // Local filter
+            .where((t) {
+              // Safe parsing to check if it's active (not returned or canceled)
+              return t.status != TransactionStatus.returned && t.status != TransactionStatus.canceled;
+            });
           
           return activeDocs.isNotEmpty 
-            ? BookTransaction.fromMap(activeDocs.first.data(), activeDocs.first.id) 
+            ? activeDocs.first
             : null;
         });
   }

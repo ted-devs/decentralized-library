@@ -4,6 +4,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/library/domain/book_transaction.dart';
+import 'package:decentralized_library/src/features/library/data/transaction_repository.dart';
 
 final bookshelfRepositoryProvider = Provider((ref) => BookshelfRepository(FirebaseFirestore.instance));
 
@@ -45,6 +46,7 @@ class BookshelfRepository {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByOwner) 
             .toList());
   }
 
@@ -55,7 +57,12 @@ class BookshelfRepository {
         .where('status', whereIn: ['pickedUp', 'overdue'])
         .snapshots()
         .switchMap((snapshot) {
-          final bookIds = snapshot.docs.map((doc) => doc.get('bookId') as String).toList();
+          final books = snapshot.docs
+            .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByBorrower); 
+          
+          final bookIds = books.map((t) => t.bookId).toList();
+          
           if (bookIds.isEmpty) return Stream.value([]);
           
           return _firestore
@@ -90,22 +97,18 @@ class BookshelfRepository {
 }
 
 final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final user = authState.value;
+  final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
   
   final repo = ref.watch(bookshelfRepositoryProvider);
+  final transactionRepo = ref.watch(transactionRepositoryProvider);
   
   final ownedStream = repo.watchOwnedBooks(user.uid);
   final borrowedBooksStream = repo.watchBorrowedBooks(user.uid); 
   final lentTransactionsStream = repo.watchLentTransactions(user.uid); 
 
-  // New: Watch all transactions where user is the borrower to match with borrowed books
-  final borrowedTransactionsStream = FirebaseFirestore.instance
-      .collection('transactions')
-      .where('borrowerId', isEqualTo: user.uid)
-      .snapshots()
-      .map((snap) => snap.docs.map((doc) => BookTransaction.fromMap(doc.data(), doc.id)).toList());
+  // Watch borrower transactions to ensure bookshelf is reactive to status changes
+  final borrowedTransactionsStream = transactionRepo.watchOutgoingRequests(user.uid);
 
   return CombineLatestStream.combine4(
     ownedStream,
@@ -125,12 +128,19 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
       }
 
       for (var book in borrowed) {
-        final activeBorrowed = borrowedTx.where((t) => t.bookId == book.id).firstOrNull;
-        items.add(BookshelfItem(
-          book: book,
-          transaction: activeBorrowed,
-          isBorrowed: true,
-        ));
+        // Only include in bookshelf if the transaction is still active for the borrower
+        final activeBorrowed = borrowedTx.where((t) => 
+          t.bookId == book.id && 
+          (t.status == TransactionStatus.pickedUp || t.status == TransactionStatus.overdue)
+        ).firstOrNull;
+
+        if (activeBorrowed != null) {
+          items.add(BookshelfItem(
+            book: book,
+            transaction: activeBorrowed,
+            isBorrowed: true,
+          ));
+        }
       }
 
       return items;

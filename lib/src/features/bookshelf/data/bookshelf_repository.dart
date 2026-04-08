@@ -52,7 +52,7 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
-        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
+        .where('status', whereIn: ['pickedUp', 'overdue'])
         .snapshots()
         .switchMap((snapshot) {
           final bookIds = snapshot.docs.map((doc) => doc.get('bookId') as String).toList();

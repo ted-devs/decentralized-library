@@ -385,27 +385,60 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
             if (!isPreview && !isOwner && widget.transaction == null && widget.book.isShareable) ...[
               Consumer(
                 builder: (context, ref, child) {
+                  final user = ref.watch(authStateProvider).value;
                   final activeTxAsync = ref.watch(activeTransactionForBookProvider((
                     userId: user?.uid ?? '',
                     bookId: widget.book.id,
                   )));
+                  final confirmedTxAsync = ref.watch(confirmedTransactionForBookProvider(widget.book.id));
 
                   return activeTxAsync.when(
                     data: (activeTx) {
-                      final hasActiveRequest = activeTx != null;
-                      String buttonLabel = 'Request to Borrow';
-                      if (activeTx?.status == TransactionStatus.requested) buttonLabel = 'Request Pending';
-                      if (activeTx?.status == TransactionStatus.approved) buttonLabel = 'Awaiting Pickup';
-                      if (activeTx?.status == TransactionStatus.pickedUp) buttonLabel = 'On Loan';
+                      // 1. If the current user has an active request, show their status.
+                      if (activeTx != null) {
+                        String buttonLabel = 'Request Pending';
+                        if (activeTx.status == TransactionStatus.approved) buttonLabel = 'Awaiting Pickup';
+                        if (activeTx.status == TransactionStatus.pickedUp) buttonLabel = 'On Loan';
 
-                      return SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading || hasActiveRequest ? null : _requestBorrow,
-                          icon: Icon(hasActiveRequest ? Icons.hourglass_empty_rounded : Icons.send_rounded),
-                          label: _isLoading ? const CircularProgressIndicator() : Text(buttonLabel),
-                        ),
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: null, // Disabled because I already have an active session
+                            icon: const Icon(Icons.hourglass_empty_rounded),
+                            label: Text(buttonLabel),
+                          ),
+                        );
+                      }
+
+                      // 2. If NO personal request, check if SOMEONE ELSE has a confirmed transaction.
+                      return confirmedTxAsync.when(
+                        data: (confirmedTx) {
+                          if (confirmedTx != null) {
+                            return SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                            child: ElevatedButton.icon(
+                                onPressed: null, // Disabled because someone else has it
+                                icon: const Icon(Icons.lock_clock_rounded),
+                                label: const Text('Already Borrowed'),
+                              ),
+                            );
+                          }
+
+                          // 3. Otherwise, I can request it.
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading ? null : _requestBorrow,
+                              icon: const Icon(Icons.send_rounded),
+                              label: _isLoading ? const CircularProgressIndicator() : const Text('Request to Borrow'),
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator())),
+                        error: (_, __) => const SizedBox.shrink(),
                       );
                     },
                     loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator())),

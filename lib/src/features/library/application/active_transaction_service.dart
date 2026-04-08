@@ -7,3 +7,7 @@ import '../domain/book_transaction.dart';
 final activeTransactionForBookProvider = StreamProvider.family<BookTransaction?, ({String userId, String bookId})>((ref, arg) {
   return ref.watch(transactionRepositoryProvider).watchActiveTransactionForBook(arg.userId, arg.bookId);
 });
+
+final confirmedTransactionForBookProvider = StreamProvider.family<BookTransaction?, String>((ref, bookId) {
+  return ref.watch(transactionRepositoryProvider).watchAnyConfirmedTransactionForBook(bookId);
+});

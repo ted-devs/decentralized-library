@@ -53,6 +53,23 @@ class TransactionRepository {
         });
   }
 
+  Stream<BookTransaction?> watchAnyConfirmedTransactionForBook(String bookId) {
+    return _firestore
+        .collection('transactions')
+        .where('bookId', isEqualTo: bookId)
+        .where('status', whereIn: [
+          TransactionStatus.approved.name,
+          TransactionStatus.pickedUp.name,
+          TransactionStatus.overdue.name,
+        ])
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.isNotEmpty
+              ? BookTransaction.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id)
+              : null;
+        });
+  }
+
   Future<void> requestBook({
     required String borrowerId,
     required String bookId,

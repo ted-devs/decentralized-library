@@ -13,72 +13,146 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          const _SectionHeader(title: 'Appearance'),
-          ListTile(
-            leading: Icon(
-              themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
-              color: theme.colorScheme.primary,
-            ),
-            title: const Text('Dark Mode'),
-            subtitle: Text('Current: ${themeMode.name.toUpperCase()}'),
-            trailing: Switch(
-              value: themeMode == ThemeMode.dark,
-              onChanged: (_) => ref.read(themeModeProvider.notifier).toggleTheme(),
-            ),
-          ),
-          const Divider(),
-          const _SectionHeader(title: 'Account & Membership'),
-          ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: Text(appUser?.displayName ?? 'Not logged in'),
-            subtitle: Text(appUser?.email ?? ''),
-          ),
-          ListTile(
-            leading: Icon(
-              Icons.stars_rounded,
-              color: appUser?.isPro == true ? Colors.amber : Colors.grey,
-            ),
-            title: const Text('Premium Status'),
-            subtitle: Text(appUser?.isPro == true ? 'Pro Member' : 'Standard Member'),
-            trailing: appUser?.isPro == false
-                ? ElevatedButton(
-                    onPressed: () => _showGoProDialog(context, ref),
-                    child: const Text('Go Pro'),
-                  )
-                : const Icon(Icons.check_circle, color: Colors.green),
-          ),
-          const Divider(),
-          const _SectionHeader(title: 'App Info'),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Version'),
-            subtitle: Text('1.0.0 (BETA)'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-            onTap: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Sign Out?'),
-                  content: const Text('Are you sure you want to sign out?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign Out')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            // Centered Profile Header
+            Center(
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 55,
+                    backgroundColor: theme.colorScheme.primary.withAlpha(50),
+                    backgroundImage: appUser?.photoUrl.isNotEmpty == true 
+                        ? NetworkImage(appUser!.photoUrl) 
+                        : null,
+                    child: appUser?.photoUrl.isEmpty == true 
+                        ? Icon(Icons.person, size: 55, color: theme.colorScheme.primary) 
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    appUser?.displayName ?? 'Not logged in',
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    appUser?.email ?? '',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                  ),
+                  if (appUser?.city.isNotEmpty == true) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${appUser!.city}, ${appUser.country}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary.withAlpha(180),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ],
-                ),
-              );
-              if (confirm == true) {
-                await ref.read(authServiceProvider).signOut();
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-          ),
-        ],
+                  const SizedBox(height: 16),
+                  // Membership Badge
+                  GestureDetector(
+                    onTap: () {
+                      if (appUser?.isPro == true) {
+                        _showCancelProDialog(context, ref);
+                      } else {
+                        _showGoProDialog(context, ref);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: appUser?.isPro == true ? Colors.amber[100] : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: appUser?.isPro == true ? Colors.amber[700]! : Colors.grey[400]!,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            appUser?.isPro == true ? Icons.stars_rounded : Icons.person_outline,
+                            size: 18,
+                            color: appUser?.isPro == true ? Colors.amber[800] : Colors.grey[700],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            appUser?.isPro == true ? 'PRO MEMBER' : 'FREE PLAN',
+                            style: TextStyle(
+                              color: appUser?.isPro == true ? Colors.amber[900] : Colors.grey[800],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Divider(height: 1),
+            
+            // Sub-Settings
+            _SettingsTile(
+              leading: Icon(
+                themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+                color: theme.colorScheme.primary,
+              ),
+              title: 'Dark Mode',
+              subtitle: 'Current: ${themeMode.name.toUpperCase()}',
+              trailing: Switch(
+                value: themeMode == ThemeMode.dark,
+                onChanged: (_) => ref.read(themeModeProvider.notifier).toggleTheme(),
+              ),
+            ),
+            const Divider(height: 1, indent: 56),
+            _SettingsTile(
+              leading: const Icon(Icons.info_outline, color: Colors.blue),
+              title: 'App Info',
+              subtitle: 'Version 1.0.0 (BETA)',
+              onTap: () {}, // Show app info details or license
+            ),
+            const Divider(height: 1),
+            const SizedBox(height: 40),
+            
+            // Sign Out Option at the Bottom
+            _SettingsTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: 'Sign Out',
+              titleColor: Colors.red,
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Sign Out?'),
+                    content: const Text('Are you sure you want to sign out?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign Out')),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await ref.read(authServiceProvider).signOut();
+                  if (context.mounted) Navigator.pop(context);
+                }
+              },
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
@@ -103,7 +177,7 @@ class SettingsScreen extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')),
           ElevatedButton(
             onPressed: () {
-              _mockUpgrade(ref);
+              _mockUpdatePro(ref, true);
               Navigator.pop(context);
             },
             child: const Text('Upgrade (Mock)'),
@@ -113,33 +187,62 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _mockUpgrade(WidgetRef ref) async {
-    final user = ref.read(appUserProvider).value;
-    if (user == null) return;
-    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'isPro': true});
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-          letterSpacing: 1.2,
-        ),
+  void _showCancelProDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Pro?'),
+        content: const Text('Are you sure you want to downgrade? You will lose access to premium features like increased borrowing limits.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Keep Pro')),
+          TextButton(
+            onPressed: () {
+              _mockUpdatePro(ref, false);
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel Subscription', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
+
+  Future<void> _mockUpdatePro(WidgetRef ref, bool isPro) async {
+    final user = ref.read(appUserProvider).value;
+    if (user == null) return;
+    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'isPro': isPro});
+  }
 }
+
+class _SettingsTile extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final Color? titleColor;
+
+  const _SettingsTile({
+    required this.leading,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+    this.titleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: leading,
+      title: Text(title, style: TextStyle(color: titleColor, fontWeight: FontWeight.w500)),
+      subtitle: subtitle != null ? Text(subtitle!) : null,
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}
+
 
 class _ProFeature extends StatelessWidget {
   final String text;

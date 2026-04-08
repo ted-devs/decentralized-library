@@ -182,6 +182,29 @@ class TransactionRepository {
     }
   }
 
+  Future<void> deleteMultipleTransactions(List<BookTransaction> transactions, String userId) async {
+    final batch = _firestore.batch();
+    for (var t in transactions) {
+      final docRef = _firestore.collection('transactions').doc(t.id);
+      
+      bool isDeletedByOwner = t.isDeletedByOwner;
+      bool isDeletedByBorrower = t.isDeletedByBorrower;
+
+      if (userId == t.ownerId) isDeletedByOwner = true;
+      if (userId == t.borrowerId) isDeletedByBorrower = true;
+
+      if (isDeletedByOwner && isDeletedByBorrower) {
+        batch.delete(docRef);
+      } else {
+        batch.update(docRef, {
+          'isDeletedByOwner': isDeletedByOwner,
+          'isDeletedByBorrower': isDeletedByBorrower,
+        });
+      }
+    }
+    await batch.commit();
+  }
+
   Future<void> cancelTransaction(String transactionId) async {
     await _firestore.collection('transactions').doc(transactionId).update({
       'status': TransactionStatus.canceled.name,

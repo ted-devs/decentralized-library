@@ -99,7 +99,11 @@ class _IncomingRequestsView extends ConsumerWidget {
               ...active.map((t) => _TransactionTile(transaction: t)),
             ],
             if (inactive.isNotEmpty) ...[
-              const _SectionHeader(title: 'Past Transactions'),
+              _SectionHeader(
+                title: 'Past Transactions',
+                onAction: () => _clearHistory(context, ref, inactive, 'lending'),
+                actionLabel: 'CLEAR ALL',
+              ),
               ...inactive.map((t) => _TransactionTile(transaction: t)),
             ],
           ],
@@ -108,6 +112,35 @@ class _IncomingRequestsView extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error: $e')),
     );
+  }
+
+  Future<void> _clearHistory(BuildContext context, WidgetRef ref, List<BookTransaction> items, String type) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear History?'),
+        content: Text('This will remove all ${items.length} past transactions from your view. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final user = ref.read(authStateProvider).value;
+      if (user != null) {
+        await ref.read(transactionRepositoryProvider).deleteMultipleTransactions(items, user.uid);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('History cleared.')),
+          );
+        }
+      }
+    }
   }
 }
 
@@ -142,7 +175,11 @@ class _OutgoingRequestsView extends ConsumerWidget {
               ...active.map((t) => _TransactionTile(transaction: t)),
             ],
             if (inactive.isNotEmpty) ...[
-              const _SectionHeader(title: 'Past Transactions'),
+              _SectionHeader(
+                title: 'Past Transactions',
+                onAction: () => _clearHistory(context, ref, inactive, 'borrowing'),
+                actionLabel: 'CLEAR ALL',
+              ),
               ...inactive.map((t) => _TransactionTile(transaction: t)),
             ],
           ],
@@ -152,26 +189,82 @@ class _OutgoingRequestsView extends ConsumerWidget {
       error: (e, st) => Center(child: Text('Error: $e')),
     );
   }
+
+  Future<void> _clearHistory(BuildContext context, WidgetRef ref, List<BookTransaction> items, String type) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear History?'),
+        content: Text('This will remove all ${items.length} past transactions from your view. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear All', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final user = ref.read(authStateProvider).value;
+      if (user != null) {
+        await ref.read(transactionRepositoryProvider).deleteMultipleTransactions(items, user.uid);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('History cleared.')),
+          );
+        }
+      }
+    }
+  }
 }
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionHeader({required this.title});
+  final VoidCallback? onAction;
+  final String? actionLabel;
+
+  const _SectionHeader({
+    required this.title,
+    this.onAction,
+    this.actionLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       color: theme.colorScheme.surfaceVariant.withAlpha(50),
-      child: Text(
-        title.toUpperCase(),
-        style: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.primary,
-          letterSpacing: 1.2,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+              letterSpacing: 1.2,
+            ),
+          ),
+          if (onAction != null && actionLabel != null)
+            TextButton(
+              onPressed: onAction,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+              ),
+              child: Text(
+                actionLabel!,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

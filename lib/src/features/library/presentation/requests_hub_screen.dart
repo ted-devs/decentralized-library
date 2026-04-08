@@ -80,12 +80,29 @@ class _IncomingRequestsView extends ConsumerWidget {
         if (requests.isEmpty)
           return const Center(child: Text('No incoming requests.'));
 
-        return ListView.builder(
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            final request = requests[index];
-            return _TransactionTile(transaction: request);
-          },
+        final active = requests.where((t) => [
+          TransactionStatus.requested,
+          TransactionStatus.approved,
+          TransactionStatus.pickedUp,
+          TransactionStatus.overdue,
+        ].contains(t.status)).toList();
+        
+        final inactive = requests.where((t) => [
+          TransactionStatus.returned,
+          TransactionStatus.canceled,
+        ].contains(t.status)).toList();
+
+        return ListView(
+          children: [
+            if (active.isNotEmpty) ...[
+              const _SectionHeader(title: 'Active Transactions'),
+              ...active.map((t) => _TransactionTile(transaction: t)),
+            ],
+            if (inactive.isNotEmpty) ...[
+              const _SectionHeader(title: 'Past Transactions'),
+              ...inactive.map((t) => _TransactionTile(transaction: t)),
+            ],
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -106,16 +123,56 @@ class _OutgoingRequestsView extends ConsumerWidget {
         if (requests.isEmpty)
           return const Center(child: Text('No outgoing requests.'));
 
-        return ListView.builder(
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            final request = requests[index];
-            return _TransactionTile(transaction: request);
-          },
+        final active = requests.where((t) => [
+          TransactionStatus.requested,
+          TransactionStatus.approved,
+          TransactionStatus.pickedUp,
+          TransactionStatus.overdue,
+        ].contains(t.status)).toList();
+        
+        final inactive = requests.where((t) => [
+          TransactionStatus.returned,
+          TransactionStatus.canceled,
+        ].contains(t.status)).toList();
+
+        return ListView(
+          children: [
+            if (active.isNotEmpty) ...[
+              const _SectionHeader(title: 'Active Transactions'),
+              ...active.map((t) => _TransactionTile(transaction: t)),
+            ],
+            if (inactive.isNotEmpty) ...[
+              const _SectionHeader(title: 'Past Transactions'),
+              ...inactive.map((t) => _TransactionTile(transaction: t)),
+            ],
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.surfaceVariant.withAlpha(50),
+      child: Text(
+        title.toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+          color: theme.colorScheme.primary,
+          letterSpacing: 1.2,
+        ),
+      ),
     );
   }
 }

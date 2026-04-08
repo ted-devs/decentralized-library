@@ -100,6 +100,45 @@ class AuthService {
     }
   }
 
+  Future<void> signInWithEmail(String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+    } catch (e) {
+      throw Exception(_parseAuthError(e));
+    }
+  }
+
+  Future<void> signUpWithEmail(String email, String password) async {
+    try {
+      await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } catch (e) {
+      throw Exception(_parseAuthError(e));
+    }
+  }
+
+  String _parseAuthError(dynamic e) {
+    if (e is FirebaseAuthException) {
+      switch (e.code) {
+        case 'user-not-found':
+          return 'No user found for that email.';
+        case 'wrong-password':
+          return 'Wrong password provided.';
+        case 'email-already-in-use':
+          return 'The account already exists for that email.';
+        case 'invalid-email':
+          return 'The email address is badly formatted.';
+        case 'weak-password':
+          return 'The password is too weak (min 6 chars).';
+        default:
+          return e.message ?? 'An unknown error occurred.';
+      }
+    }
+    return e.toString();
+  }
+
   Future<void> signOut() async {
     try {
       await _ensureInitialized();

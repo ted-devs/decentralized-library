@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../application/auth_service.dart';
 import 'login_screen.dart';
 import 'onboarding_screen.dart';
-import '../../home/presentation/home_screen.dart';
+import '../../home/presentation/main_navigation_shell.dart';
 
 class AuthWrapper extends ConsumerWidget {
   const AuthWrapper({super.key});
@@ -29,7 +29,7 @@ class AuthWrapper extends ConsumerWidget {
               return OnboardingScreen(firebaseUser: user);
             }
             // 4. Fully authenticated and onboarded
-            return const HomeScreen();
+            return const MainNavigationShell();
           },
           loading: () => const Scaffold(
             body: Center(child: CircularProgressIndicator()),

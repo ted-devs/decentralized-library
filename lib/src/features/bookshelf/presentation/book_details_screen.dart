@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/library/domain/book_transaction.dart';
 import 'package:decentralized_library/src/features/library/data/transaction_repository.dart';
+import 'package:decentralized_library/src/features/library/application/active_transaction_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
+import 'package:decentralized_library/src/features/communities/presentation/user_profile_screen.dart';
 
 class BookDetailsScreen extends ConsumerStatefulWidget {
   final Book book;
@@ -159,6 +163,17 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
     }
   }
 
+  String _getStatusLabel(TransactionStatus status) {
+    switch (status) {
+      case TransactionStatus.requested: return 'Request Pending';
+      case TransactionStatus.approved: return 'Awaiting Pickup';
+      case TransactionStatus.pickedUp: return 'On Loan';
+      case TransactionStatus.returned: return 'Returned';
+      case TransactionStatus.canceled: return 'Canceled';
+      case TransactionStatus.overdue: return 'Overdue';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value;
@@ -231,15 +246,97 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Status: ${widget.transaction!.status.name.toUpperCase()}', 
-                          style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                      const SizedBox(height: 8),
-                      Text(isOwner ? 'Lent to: Another Member' : 'Borrowed from: Owner'),
+                      Text(
+                        'Status: ${_getStatusLabel(widget.transaction!.status)}'.toUpperCase(), 
+                        style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)
+                      ),
+                      
+                      const Divider(height: 24),
+                      const Text('Coordination Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      
+                      Builder(builder: (context) {
+                        final status = widget.transaction!.status;
+                        
+                        // Active statuses where coordination is needed
+                        final activeStatuses = [
+                          TransactionStatus.requested,
+                          TransactionStatus.approved,
+                          TransactionStatus.pickedUp,
+                          TransactionStatus.overdue,
+                        ];
+
+                        if (!activeStatuses.contains(status)) {
+                          String message = 'This transaction is complete. Coordination info is no longer available.';
+                          if (status == TransactionStatus.canceled) {
+                            message = 'This request has been cancelled. Coordination info is no longer available.';
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(message),
+                          );
+                        }
+
+                        final canViewProfile = isOwner || (status == TransactionStatus.approved || 
+                                                         status == TransactionStatus.pickedUp || 
+                                                         status == TransactionStatus.overdue);
+                        
+                        if (!canViewProfile && !isOwner) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text('Once the owner approves your request, you will be able to view their profile to coordinate the exchange.'),
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Coordinate the physical exchange via profile contact info.'),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: _isLoading ? null : () async {
+                                final userIdToView = isOwner ? widget.transaction!.borrowerId : widget.transaction!.ownerId;
+                                setState(() => _isLoading = true);
+                                try {
+                                  final doc = await FirebaseFirestore.instance.collection('users').doc(userIdToView).get();
+                                  if (mounted) {
+                                    if (doc.exists && doc.data() != null) {
+                                      final userProfile = AppUser.fromMap(doc.data()!, doc.id);
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => UserProfileScreen(
+                                            user: userProfile,
+                                            membership: null,
+                                            prefillBookTitle: widget.book.title,
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User profile not found.')));
+                                    }
+                                  }
+                                } catch (e) {
+                                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading profile: $e')));
+                                } finally {
+                                  if (mounted) setState(() => _isLoading = false);
+                                }
+                              },
+                              icon: _isLoading 
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                : const Icon(Icons.person_pin_rounded, size: 18),
+                              label: Text(isOwner ? 'View Borrower Profile' : 'View Owner Profile'),
+                            ),
+                          ],
+                        );
+                      }),
+
                       if (widget.transaction!.pickedUpDate != null)
-                        Text('Due: ${widget.transaction!.pickedUpDate!.add(Duration(days: widget.transaction!.durationWeeks * 7)).toLocal().toString().split(' ')[0]}'),
-                      const SizedBox(height: 12),
-                      const Text('Contact Information:', style: TextStyle(fontWeight: FontWeight.bold)),
-                      const Text('Email: member@example.com (Mocked)'),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Due: ${widget.transaction!.pickedUpDate!.add(Duration(days: widget.transaction!.durationWeeks * 7)).toLocal().toString().split(' ')[0]}',
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -255,12 +352,20 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                     ],
                   ),
                 ],
-                if (widget.transaction!.status == TransactionStatus.approved)
-                  SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.pickedUp), child: const Text('Mark as Picked Up'))),
+                if (widget.transaction!.status == TransactionStatus.approved) ...[
+                  Row(
+                    children: [
+                      Expanded(child: ElevatedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.pickedUp), child: const Text('Mark as Picked Up'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: OutlinedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.canceled), child: const Text('Cancel Request'))),
+                    ],
+                  ),
+                ],
                 if (widget.transaction!.status == TransactionStatus.pickedUp)
                   SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.returned), child: const Text('Mark as Returned'))),
               ] else ...[
-                if (widget.transaction!.status == TransactionStatus.requested)
+                if (widget.transaction!.status == TransactionStatus.requested || 
+                    widget.transaction!.status == TransactionStatus.approved)
                   SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.canceled), child: const Text('Cancel Request'))),
               ],
               const SizedBox(height: 24),
@@ -278,14 +383,68 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
               const SizedBox(height: 24),
             ],
             if (!isPreview && !isOwner && widget.transaction == null && widget.book.isShareable) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _requestBorrow,
-                  icon: const Icon(Icons.send_rounded),
-                  label: _isLoading ? const CircularProgressIndicator() : const Text('Request to Borrow'),
-                ),
+              Consumer(
+                builder: (context, ref, child) {
+                  final user = ref.watch(authStateProvider).value;
+                  final activeTxAsync = ref.watch(activeTransactionForBookProvider((
+                    userId: user?.uid ?? '',
+                    bookId: widget.book.id,
+                  )));
+                  final confirmedTxAsync = ref.watch(confirmedTransactionForBookProvider(widget.book.id));
+
+                  return activeTxAsync.when(
+                    data: (activeTx) {
+                      // 1. If the current user has an active request, show their status.
+                      if (activeTx != null) {
+                        String buttonLabel = 'Request Pending';
+                        if (activeTx.status == TransactionStatus.approved) buttonLabel = 'Awaiting Pickup';
+                        if (activeTx.status == TransactionStatus.pickedUp) buttonLabel = 'On Loan';
+
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: null, // Disabled because I already have an active session
+                            icon: const Icon(Icons.hourglass_empty_rounded),
+                            label: Text(buttonLabel),
+                          ),
+                        );
+                      }
+
+                      // 2. If NO personal request, check if SOMEONE ELSE has a confirmed transaction.
+                      return confirmedTxAsync.when(
+                        data: (confirmedTx) {
+                          if (confirmedTx != null) {
+                            return SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                            child: ElevatedButton.icon(
+                                onPressed: null, // Disabled because someone else has it
+                                icon: const Icon(Icons.lock_clock_rounded),
+                                label: const Text('Already Borrowed'),
+                              ),
+                            );
+                          }
+
+                          // 3. Otherwise, I can request it.
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading ? null : _requestBorrow,
+                              icon: const Icon(Icons.send_rounded),
+                              label: _isLoading ? const CircularProgressIndicator() : const Text('Request to Borrow'),
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator())),
+                        error: (_, __) => const SizedBox.shrink(),
+                      );
+                    },
+                    loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator())),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
               ),
               const SizedBox(height: 24),
             ],

@@ -101,12 +101,21 @@ class CommunitiesHubScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        title: Text(community.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Row(
+          children: [
+            Expanded(child: Text(community.name, style: const TextStyle(fontWeight: FontWeight.bold))),
+            if (community.adminId == appUser?.uid)
+              Badge(
+                isLabelVisible: ref.watch(communityPendingRequestsProvider(community.id)).value?.isNotEmpty ?? false,
+                child: const SizedBox.shrink(),
+              ),
+          ],
+        ),
         subtitle: Text(community.description, maxLines: 1, overflow: TextOverflow.ellipsis),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (appUser != null)
+            if (appUser != null && (isApproved || community.adminId == appUser.uid))
               IconButton(
                 icon: Icon(
                   isPinned ? Icons.push_pin : Icons.push_pin_outlined,

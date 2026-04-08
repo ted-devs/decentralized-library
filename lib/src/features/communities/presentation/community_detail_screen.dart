@@ -7,6 +7,8 @@ import 'package:decentralized_library/src/features/communities/domain/membership
 import 'community_info_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
+import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
+import 'package:decentralized_library/src/features/library/application/active_transaction_service.dart';
 import 'user_profile_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -60,11 +62,16 @@ class CommunityDetailScreen extends ConsumerWidget {
                       Material(
                         color: Theme.of(context).cardColor,
                         elevation: 1, // Add subtle shadow for premium feel
-                        child: const TabBar(
+                        child: TabBar(
                           tabs: [
-                            Tab(text: 'Library'),
-                            Tab(text: 'Members'),
-                            Tab(text: 'Requests'),
+                            const Tab(text: 'Library'),
+                            const Tab(text: 'Members'),
+                            Tab(
+                              child: Badge(
+                                isLabelVisible: ref.watch(communityPendingRequestsProvider(community.id)).value?.isNotEmpty ?? false,
+                                child: const Text('Requests'),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -109,26 +116,67 @@ class _CommunityLibraryView extends ConsumerWidget {
         return ListView.builder(
           itemCount: books.length,
           itemBuilder: (context, index) {
-            final book = books[index];
-            return ListTile(
-              leading: BookCover(
-                url: book.coverUrl,
-                width: 40,
-                height: 60,
-                useCache: true,
-              ),
-              title: Text(book.title),
-              subtitle: Text(book.author),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
-              ),
-            );
+            return _CommunityLibraryTile(book: books[index]);
           },
         );
       },
       loading: () => const _CommunityLibrarySkeleton(),
       error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _CommunityLibraryTile extends ConsumerWidget {
+  final Book book;
+  const _CommunityLibraryTile({required this.book});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final confirmedTxAsync = ref.watch(confirmedTransactionForBookProvider(book.id));
+
+    return confirmedTxAsync.when(
+      data: (tx) {
+        final isUnavailable = tx != null;
+        
+        return Opacity(
+          opacity: isUnavailable ? 0.6 : 1.0,
+          child: ListTile(
+            leading: BookCover(
+              url: book.coverUrl,
+              width: 40,
+              height: 60,
+              useCache: true,
+            ),
+            title: Text(
+              book.title,
+              style: TextStyle(
+                fontWeight: isUnavailable ? FontWeight.normal : FontWeight.bold,
+                color: isUnavailable ? Colors.grey : null,
+              ),
+            ),
+            subtitle: Text(book.author),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isUnavailable)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.remove_circle_outline, color: Colors.grey, size: 20),
+                  ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
+            ),
+          ),
+        );
+      },
+      loading: () => const ListTile(
+        leading: SizedBox(width: 40, height: 60),
+        title: Text('...'),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
@@ -234,21 +282,40 @@ class _CommunityRequestsView extends ConsumerWidget {
             final userAsync = ref.watch(userProvider(request.userId));
 
             return ListTile(
+              leading: const CircleAvatar(child: Icon(Icons.person)),
               title: userAsync.when(
                 data: (user) => Text(user?.displayName ?? 'Unknown User'),
                 loading: () => const Text('Loading...'),
                 error: (_, __) => const Text('Error loading user'),
               ),
+              onTap: userAsync.value != null ? () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => UserProfileScreen(
+                      user: userAsync.value!,
+                      membership: request,
+                    ),
+                  ),
+                );
+              } : null,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(request.id, MembershipStatus.approved),
+                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(
+                      request.id, 
+                      MembershipStatus.approved,
+                      communityName: community.name,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(request.id, MembershipStatus.rejected),
+                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(
+                      request.id, 
+                      MembershipStatus.rejected,
+                      communityName: community.name,
+                    ),
                   ),
                 ],
               ),

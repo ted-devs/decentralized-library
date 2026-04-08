@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/book_transaction.dart';
+import 'package:decentralized_library/src/features/notifications/domain/app_notification.dart';
 
 final transactionRepositoryProvider = Provider((ref) => TransactionRepository(FirebaseFirestore.instance));
 
@@ -12,10 +13,10 @@ class TransactionRepository {
     return _firestore
         .collection('transactions')
         .where('ownerId', isEqualTo: userId)
-        .where('status', isEqualTo: TransactionStatus.requested.name)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByOwner) // Local filter for backward compatibility
             .toList());
   }
 
@@ -26,7 +27,48 @@ class TransactionRepository {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByBorrower) // Local filter for backward compatibility
             .toList());
+  }
+
+  Stream<BookTransaction?> watchActiveTransactionForBook(String userId, String bookId) {
+    return _firestore
+        .collection('transactions')
+        .where('borrowerId', isEqualTo: userId)
+        .where('bookId', isEqualTo: bookId)
+        .snapshots()
+        .map((snapshot) {
+          final activeDocs = snapshot.docs
+            .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByBorrower) // Local filter
+            .where((t) {
+              // Safe parsing to check if it's active (not returned or canceled)
+              return t.status != TransactionStatus.returned && t.status != TransactionStatus.canceled;
+            });
+          
+          return activeDocs.isNotEmpty 
+            ? activeDocs.first
+            : null;
+        });
+  }
+
+  Stream<BookTransaction?> watchAnyConfirmedTransactionForBook(String bookId) {
+    return _firestore
+        .collection('transactions')
+        .where('bookId', isEqualTo: bookId)
+        .where('status', whereIn: [
+          TransactionStatus.approved.name,
+          TransactionStatus.pickedUp.name,
+          TransactionStatus.overdue.name,
+        ])
+        .snapshots()
+        .map((snapshot) {
+          // We don't filter by isDeleted here because global availability 
+          // depends on the actual physical state of the book.
+          return snapshot.docs.isNotEmpty
+              ? BookTransaction.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id)
+              : null;
+        });
   }
 
   Future<void> requestBook({
@@ -55,6 +97,23 @@ class TransactionRepository {
       'status': TransactionStatus.requested.name,
       'durationWeeks': 4,
       'requestedDate': FieldValue.serverTimestamp(),
+      'isDeletedByOwner': false,
+      'isDeletedByBorrower': false,
+    });
+
+    // Send notification to book owner
+    final borrowerDoc = await _firestore.collection('users').doc(borrowerId).get();
+    final borrowerName = borrowerDoc.data()?['displayName'] ?? 'A user';
+
+    await _firestore.collection('notifications').add({
+      'recipientId': ownerId,
+      'senderId': borrowerId,
+      'type': NotificationType.borrowRequest.name,
+      'title': 'New Book Request!',
+      'body': '$borrowerName wants to borrow a book from you.',
+      'relatedId': bookId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
     });
   }
 
@@ -64,6 +123,22 @@ class TransactionRepository {
       'durationWeeks': durationWeeks,
       'approvedDate': FieldValue.serverTimestamp(),
     });
+
+    // Notify borrower
+    final transactionDoc = await _firestore.collection('transactions').doc(transactionId).get();
+    final borrowerId = transactionDoc.data()?['borrowerId'];
+
+    if (borrowerId != null) {
+      await _firestore.collection('notifications').add({
+        'recipientId': borrowerId,
+        'type': NotificationType.borrowApproved.name,
+        'title': 'Request Approved!',
+        'body': 'Your book borrowing request has been approved.',
+        'relatedId': transactionId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'isRead': false,
+      });
+    }
   }
 
   Future<void> markAsPickedUp(String transactionId) async {
@@ -78,6 +153,33 @@ class TransactionRepository {
       'status': TransactionStatus.returned.name,
       'returnedDate': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> deleteTransaction(String transactionId, String userId) async {
+    final docRef = _firestore.collection('transactions').doc(transactionId);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final ownerId = data['ownerId'] as String;
+    final borrowerId = data['borrowerId'] as String;
+
+    bool isDeletedByOwner = data['isDeletedByOwner'] ?? false;
+    bool isDeletedByBorrower = data['isDeletedByBorrower'] ?? false;
+
+    if (userId == ownerId) isDeletedByOwner = true;
+    if (userId == borrowerId) isDeletedByBorrower = true;
+
+    if (isDeletedByOwner && isDeletedByBorrower) {
+      // Both parties deleted, we can physically remove it
+      await docRef.delete();
+    } else {
+      // Soft delete for one party
+      await docRef.update({
+        'isDeletedByOwner': isDeletedByOwner,
+        'isDeletedByBorrower': isDeletedByBorrower,
+      });
+    }
   }
 
   Future<void> cancelTransaction(String transactionId) async {

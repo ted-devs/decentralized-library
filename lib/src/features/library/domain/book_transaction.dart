@@ -22,6 +22,8 @@ class BookTransaction {
   final DateTime? pickedUpDate;
   final DateTime? returnedDate;
   final DateTime? canceledDate;
+  final bool isDeletedByOwner;
+  final bool isDeletedByBorrower;
 
   BookTransaction({
     required this.id,
@@ -36,6 +38,8 @@ class BookTransaction {
     this.pickedUpDate,
     this.returnedDate,
     this.canceledDate,
+    this.isDeletedByOwner = false,
+    this.isDeletedByBorrower = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -51,7 +55,25 @@ class BookTransaction {
       'pickedUpDate': pickedUpDate != null ? Timestamp.fromDate(pickedUpDate!) : null,
       'returnedDate': returnedDate != null ? Timestamp.fromDate(returnedDate!) : null,
       'canceledDate': canceledDate != null ? Timestamp.fromDate(canceledDate!) : null,
+      'isDeletedByOwner': isDeletedByOwner,
+      'isDeletedByBorrower': isDeletedByBorrower,
     };
+  }
+
+  bool isOverdue() {
+    if (status != TransactionStatus.pickedUp || pickedUpDate == null) return false;
+    final dueDate = pickedUpDate!.add(Duration(days: durationWeeks * 7));
+    return DateTime.now().isAfter(dueDate);
+  }
+
+  static TransactionStatus _parseStatus(String statusStr) {
+    final normalized = statusStr.toLowerCase().replaceAll('_', '');
+    for (var value in TransactionStatus.values) {
+      if (value.name.toLowerCase().replaceAll('_', '') == normalized) {
+        return value;
+      }
+    }
+    return TransactionStatus.requested;
   }
 
   factory BookTransaction.fromMap(Map<String, dynamic> map, String id) {
@@ -61,19 +83,15 @@ class BookTransaction {
       ownerId: map['ownerId'] ?? '',
       borrowerId: map['borrowerId'] ?? '',
       communityId: map['communityId'] ?? '',
-      status: TransactionStatus.values.byName(map['status'] ?? 'requested'),
+      status: _parseStatus(map['status'] ?? 'requested'),
       durationWeeks: map['durationWeeks'] ?? 4,
       requestedDate: (map['requestedDate'] as Timestamp?)?.toDate(),
       approvedDate: (map['approvedDate'] as Timestamp?)?.toDate(),
       pickedUpDate: (map['pickedUpDate'] as Timestamp?)?.toDate(),
       returnedDate: (map['returnedDate'] as Timestamp?)?.toDate(),
       canceledDate: (map['canceledDate'] as Timestamp?)?.toDate(),
+      isDeletedByOwner: map['isDeletedByOwner'] ?? false,
+      isDeletedByBorrower: map['isDeletedByBorrower'] ?? false,
     );
-  }
-
-  bool isOverdue() {
-    if (status != TransactionStatus.pickedUp || pickedUpDate == null) return false;
-    final dueDate = pickedUpDate!.add(Duration(days: durationWeeks * 7));
-    return DateTime.now().isAfter(dueDate);
   }
 }

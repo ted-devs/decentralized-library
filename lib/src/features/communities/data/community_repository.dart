@@ -5,6 +5,7 @@ import '../domain/membership.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
+import 'package:decentralized_library/src/features/notifications/domain/app_notification.dart';
 
 
 final communityRepositoryProvider = Provider((ref) => CommunityRepository(FirebaseFirestore.instance));
@@ -73,35 +74,114 @@ class CommunityRepository {
       'status': MembershipStatus.pending.name,
       'joinedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // Send notification to admin
+    final appUser = await _firestore.collection('users').doc(userId).get();
+    final displayName = appUser.data()?['displayName'] ?? 'A user';
+    
+    await _firestore.collection('notifications').add({
+      'recipientId': community.adminId,
+      'senderId': userId,
+      'type': NotificationType.joinRequest.name,
+      'title': 'New Join Request',
+      'body': '$displayName wants to join ${community.name}',
+      'relatedId': community.id,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isRead': false,
+    });
   }
 
-  Future<void> updateMembershipStatus(String membershipId, MembershipStatus status) async {
+  Future<void> updateMembershipStatus(String membershipId, MembershipStatus status, {required String communityName}) async {
     await _firestore.collection('memberships').doc(membershipId).update({
       'status': status.name,
     });
+
+    if (status == MembershipStatus.approved) {
+      final membershipDoc = await _firestore.collection('memberships').doc(membershipId).get();
+      final userId = membershipDoc.data()?['userId'];
+      final communityId = membershipDoc.data()?['communityId'];
+
+      if (userId != null) {
+        await _firestore.collection('notifications').add({
+          'recipientId': userId,
+          'type': NotificationType.membershipApproved.name,
+          'title': 'Membership Approved!',
+          'body': 'You are now a member of $communityName',
+          'relatedId': communityId,
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      }
+    }
   }
 
   Future<void> leaveCommunity(String membershipId) async {
     await _firestore.collection('memberships').doc(membershipId).delete();
   }
 
+  Future<void> deleteCommunity(String communityId) async {
+    final batch = _firestore.batch();
+    
+    // 1. Delete the community document
+    batch.delete(_firestore.collection('communities').doc(communityId));
+    
+    // 2. Delete all memberships for this community
+    final memberships = await _firestore
+        .collection('memberships')
+        .where('communityId', isEqualTo: communityId)
+        .get();
+    
+    for (var doc in memberships.docs) {
+      batch.delete(doc.reference);
+    }
+    
+    await batch.commit();
+  }
+
   Future<void> togglePinCommunity(String userId, String communityId, bool pin) async {
     final userRef = _firestore.collection('users').doc(userId);
-    if (pin) {
-      // Limit to 3 pins for clean UI
-      final doc = await userRef.get();
-      final currentPins = List<String>.from(doc.data()?['pinnedCommunities'] ?? []);
-      if (currentPins.length >= 3) {
-        throw Exception('You can only pin up to 3 communities.');
+    final userDoc = await userRef.get();
+    final List<String> currentPins = List<String>.from(userDoc.data()?['pinnedCommunities'] ?? []);
+
+    // Validation Phase: Check if all currently pinned communities still exist
+    final existenceResults = await Future.wait(
+      currentPins.map((id) => _firestore.collection('communities').doc(id).get().then((doc) => doc.exists))
+    );
+
+    final List<String> cleanedPins = [];
+    for (int i = 0; i < currentPins.length; i++) {
+      if (existenceResults[i]) {
+        cleanedPins.add(currentPins[i]);
       }
-      await userRef.update({
-        'pinnedCommunities': FieldValue.arrayUnion([communityId]),
-      });
-    } else {
-      await userRef.update({
-        'pinnedCommunities': FieldValue.arrayRemove([communityId]),
-      });
     }
+
+    if (pin) {
+      // Membership Phase: Verify user is an approved member
+      final membershipId = '${userId}_${communityId}';
+      final membershipDoc = await _firestore.collection('memberships').doc(membershipId).get();
+      
+      final isApproved = membershipDoc.exists && 
+                         membershipDoc.data()?['status'] == MembershipStatus.approved.name;
+      
+      if (!isApproved) {
+        throw Exception('You can only pin communities that you are a member of.');
+      }
+
+      if (!cleanedPins.contains(communityId)) {
+        if (cleanedPins.length >= 3) {
+          // If after cleaning we are still at limit, then block
+          throw Exception('You can only pin up to 3 communities.');
+        }
+        cleanedPins.add(communityId);
+      }
+    } else {
+      cleanedPins.remove(communityId);
+    }
+
+    // Update with the cleaned (and potentially updated) list
+    await userRef.update({
+      'pinnedCommunities': cleanedPins,
+    });
   }
 }
 

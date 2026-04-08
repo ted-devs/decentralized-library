@@ -4,6 +4,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/library/domain/book_transaction.dart';
+import 'package:decentralized_library/src/features/library/data/transaction_repository.dart';
 
 final bookshelfRepositoryProvider = Provider((ref) => BookshelfRepository(FirebaseFirestore.instance));
 
@@ -41,10 +42,11 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('ownerId', isEqualTo: userId)
-        .where('status', whereIn: ['approved', 'picked_up', 'overdue'])
+        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByOwner) 
             .toList());
   }
 
@@ -52,10 +54,15 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
-        .where('status', whereIn: ['approved', 'picked_up', 'overdue'])
+        .where('status', whereIn: ['pickedUp', 'overdue'])
         .snapshots()
         .switchMap((snapshot) {
-          final bookIds = snapshot.docs.map((doc) => doc.get('bookId') as String).toList();
+          final books = snapshot.docs
+            .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+            .where((t) => !t.isDeletedByBorrower); 
+          
+          final bookIds = books.map((t) => t.bookId).toList();
+          
           if (bookIds.isEmpty) return Stream.value([]);
           
           return _firestore
@@ -78,7 +85,7 @@ class BookshelfRepository {
     final active = await _firestore
         .collection('transactions')
         .where('bookId', isEqualTo: bookId)
-        .where('status', whereIn: ['requested', 'approved', 'picked_up', 'overdue'])
+        .where('status', whereIn: ['requested', 'approved', 'pickedUp', 'overdue'])
         .get();
     
     if (active.docs.isNotEmpty) {
@@ -90,21 +97,25 @@ class BookshelfRepository {
 }
 
 final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final user = authState.value;
+  final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value([]);
   
   final repo = ref.watch(bookshelfRepositoryProvider);
+  final transactionRepo = ref.watch(transactionRepositoryProvider);
   
   final ownedStream = repo.watchOwnedBooks(user.uid);
   final borrowedBooksStream = repo.watchBorrowedBooks(user.uid); 
   final lentTransactionsStream = repo.watchLentTransactions(user.uid); 
 
-  return CombineLatestStream.combine3(
+  // Watch borrower transactions to ensure bookshelf is reactive to status changes
+  final borrowedTransactionsStream = transactionRepo.watchOutgoingRequests(user.uid);
+
+  return CombineLatestStream.combine4(
     ownedStream,
     borrowedBooksStream,
     lentTransactionsStream,
-    (List<Book> owned, List<Book> borrowed, List<BookTransaction> lent) {
+    borrowedTransactionsStream,
+    (List<Book> owned, List<Book> borrowed, List<BookTransaction> lent, List<BookTransaction> borrowedTx) {
       final items = <BookshelfItem>[];
 
       for (var book in owned) {
@@ -112,15 +123,24 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
         items.add(BookshelfItem(
           book: book,
           transaction: activeLent,
-          isLent: activeLent != null,
+          isLent: activeLent != null && (activeLent.status == TransactionStatus.pickedUp || activeLent.status == TransactionStatus.overdue),
         ));
       }
 
       for (var book in borrowed) {
-        items.add(BookshelfItem(
-          book: book,
-          isBorrowed: true,
-        ));
+        // Only include in bookshelf if the transaction is still active for the borrower
+        final activeBorrowed = borrowedTx.where((t) => 
+          t.bookId == book.id && 
+          (t.status == TransactionStatus.pickedUp || t.status == TransactionStatus.overdue)
+        ).firstOrNull;
+
+        if (activeBorrowed != null) {
+          items.add(BookshelfItem(
+            book: book,
+            transaction: activeBorrowed,
+            isBorrowed: true,
+          ));
+        }
       }
 
       return items;

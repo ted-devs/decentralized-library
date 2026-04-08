@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../domain/app_user.dart';
+import '../../../shared/constants/countries.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final User firebaseUser;
@@ -14,19 +15,32 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _displayNameController;
   final _cityController = TextEditingController();
-  final _countryController = TextEditingController();
+  String? _selectedCountry;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _displayNameController = TextEditingController(text: widget.firebaseUser.displayName);
+  }
+
+  @override
   void dispose() {
+    _displayNameController.dispose();
     _cityController.dispose();
-    _countryController.dispose();
     super.dispose();
   }
 
   Future<void> _completeOnboarding() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCountry == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select your country')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -34,10 +48,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final appUser = AppUser(
         uid: user.uid,
         email: user.email ?? '',
-        displayName: user.displayName ?? 'New User',
+        displayName: _displayNameController.text.trim(),
         photoUrl: user.photoURL ?? '',
         city: _cityController.text.trim(),
-        country: _countryController.text.trim(),
+        country: _selectedCountry!,
+        createdAt: DateTime.now(),
       );
 
       await FirebaseFirestore.instance
@@ -76,17 +91,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircleAvatar(
-                    radius: 50,
+                    radius: 40,
                     backgroundImage: widget.firebaseUser.photoURL != null
                         ? NetworkImage(widget.firebaseUser.photoURL!)
                         : null,
                     child: widget.firebaseUser.photoURL == null
-                        ? const Icon(Icons.person, size: 50)
+                        ? const Icon(Icons.person, size: 40)
                         : null,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Text(
-                    'Welcome, ${widget.firebaseUser.displayName ?? 'User'}!',
+                    'Welcome!',
                     style: theme.textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),
@@ -97,6 +112,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
+                  
+                  // Display Name Field
+                  TextFormField(
+                    controller: _displayNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Display Name',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Please enter your name' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Country Dropdown
+                  DropdownButtonFormField<String>(
+                    value: _selectedCountry,
+                    decoration: const InputDecoration(
+                      labelText: 'Country',
+                      prefixIcon: Icon(Icons.public),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: countries.map((country) {
+                      return DropdownMenuItem(
+                        value: country,
+                        child: Text(country),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCountry = value;
+                      });
+                    },
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Please select your country' : null,
+                    isExpanded: true, // Prevents overflow for long country names
+                  ),
+                  const SizedBox(height: 16),
+
+                  // City Field
                   TextFormField(
                     controller: _cityController,
                     decoration: const InputDecoration(
@@ -107,18 +162,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Please enter your city' : null,
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _countryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Country',
-                      prefixIcon: Icon(Icons.public),
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) =>
-                        value == null || value.isEmpty ? 'Please enter your country' : null,
-                  ),
                   const SizedBox(height: 32),
+                  
                   SizedBox(
                     height: 50,
                     child: ElevatedButton(

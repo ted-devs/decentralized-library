@@ -43,10 +43,20 @@ class RequestsHubScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Requests'),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'To Me (Lending)'),
-              Tab(text: 'By Me (Borrowing)'),
+              Tab(
+                child: Badge(
+                  isLabelVisible: ref.watch(incomingRequestsProvider).value?.isNotEmpty ?? false,
+                  child: const Text('To Me (Lending)'),
+                ),
+              ),
+              Tab(
+                child: Badge(
+                  isLabelVisible: ref.watch(outgoingRequestsProvider).value?.isNotEmpty ?? false,
+                  child: const Text('By Me (Borrowing)'),
+                ),
+              ),
             ],
           ),
         ),
@@ -119,6 +129,49 @@ class _TransactionTile extends ConsumerWidget {
     // We need to fetch the book details to show the title
     final bookAsync = ref.watch(bookProvider(transaction.bookId));
 
+    String _getStatusLabel(TransactionStatus status) {
+      switch (status) {
+        case TransactionStatus.requested: return 'Request Pending';
+        case TransactionStatus.approved: return 'Awaiting Pickup';
+        case TransactionStatus.pickedUp: return 'On Loan';
+        case TransactionStatus.returned: return 'Returned';
+        case TransactionStatus.canceled: return 'Request Canceled';
+        case TransactionStatus.overdue: return 'Overdue';
+      }
+    }
+
+    Future<void> _showDeleteConfirmation(BuildContext context) async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Request?'),
+          content: const Text('Are you sure you want to remove this request from your history? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        final user = ref.read(authStateProvider).value;
+        if (user != null) {
+          await ref.read(transactionRepositoryProvider).deleteTransaction(transaction.id, user.uid);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('History item removed.')),
+            );
+          }
+        }
+      }
+    }
+
     return bookAsync.when(
       data: (book) {
         if (book == null) return const ListTile(title: Text('Book not found'));
@@ -131,8 +184,14 @@ class _TransactionTile extends ConsumerWidget {
             useCache: true,
           ),
           title: Text(book.title),
-          subtitle: Text('Status: ${transaction.status.name.toUpperCase()}'),
-          trailing: const Icon(Icons.chevron_right),
+          subtitle: Text('Status: ${_getStatusLabel(transaction.status)}'),
+          trailing: (transaction.status == TransactionStatus.canceled || 
+                     transaction.status == TransactionStatus.returned)
+            ? IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: () => _showDeleteConfirmation(context),
+              )
+            : const Icon(Icons.chevron_right),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(

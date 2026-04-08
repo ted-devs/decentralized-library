@@ -37,9 +37,20 @@ class SettingsScreen extends ConsumerWidget {
                         : null,
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    appUser?.displayName ?? 'Not logged in',
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(width: 48), // Spacer to balance the edit icon
+                      Text(
+                        appUser?.displayName ?? 'Not logged in',
+                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 18),
+                        onPressed: () => _showEditNameDialog(context, ref, appUser?.displayName ?? ''),
+                        tooltip: 'Edit name',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -157,6 +168,33 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  void _showEditNameDialog(BuildContext context, WidgetRef ref, String currentName) {
+    final controller = TextEditingController(text: currentName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Display Name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                _mockUpdateName(ref, controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showGoProDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -211,6 +249,12 @@ class SettingsScreen extends ConsumerWidget {
     final user = ref.read(appUserProvider).value;
     if (user == null) return;
     await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'isPro': isPro});
+  }
+
+  Future<void> _mockUpdateName(WidgetRef ref, String newName) async {
+    final user = ref.read(appUserProvider).value;
+    if (user == null) return;
+    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'displayName': newName});
   }
 }
 

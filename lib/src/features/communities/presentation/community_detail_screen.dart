@@ -7,6 +7,8 @@ import 'package:decentralized_library/src/features/communities/domain/membership
 import 'community_info_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
+import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
+import 'package:decentralized_library/src/features/library/application/active_transaction_service.dart';
 import 'user_profile_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -114,26 +116,67 @@ class _CommunityLibraryView extends ConsumerWidget {
         return ListView.builder(
           itemCount: books.length,
           itemBuilder: (context, index) {
-            final book = books[index];
-            return ListTile(
-              leading: BookCover(
-                url: book.coverUrl,
-                width: 40,
-                height: 60,
-                useCache: true,
-              ),
-              title: Text(book.title),
-              subtitle: Text(book.author),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
-              ),
-            );
+            return _CommunityLibraryTile(book: books[index]);
           },
         );
       },
       loading: () => const _CommunityLibrarySkeleton(),
       error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _CommunityLibraryTile extends ConsumerWidget {
+  final Book book;
+  const _CommunityLibraryTile({required this.book});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final confirmedTxAsync = ref.watch(confirmedTransactionForBookProvider(book.id));
+
+    return confirmedTxAsync.when(
+      data: (tx) {
+        final isUnavailable = tx != null;
+        
+        return Opacity(
+          opacity: isUnavailable ? 0.6 : 1.0,
+          child: ListTile(
+            leading: BookCover(
+              url: book.coverUrl,
+              width: 40,
+              height: 60,
+              useCache: true,
+            ),
+            title: Text(
+              book.title,
+              style: TextStyle(
+                fontWeight: isUnavailable ? FontWeight.normal : FontWeight.bold,
+                color: isUnavailable ? Colors.grey : null,
+              ),
+            ),
+            subtitle: Text(book.author),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isUnavailable)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.remove_circle_outline, color: Colors.grey, size: 20),
+                  ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
+            ),
+          ),
+        );
+      },
+      loading: () => const ListTile(
+        leading: SizedBox(width: 40, height: 60),
+        title: Text('...'),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

@@ -188,4 +188,16 @@ class TransactionRepository {
       'canceledDate': FieldValue.serverTimestamp(),
     });
   }
+
+  Stream<BookTransaction?> watchTransaction(String transactionId) {
+    return _firestore
+        .collection('transactions')
+        .doc(transactionId)
+        .snapshots()
+        .map((doc) => doc.exists ? BookTransaction.fromMap(doc.data()!, doc.id) : null);
+  }
 }
+
+final transactionProvider = StreamProvider.family<BookTransaction?, String>((ref, transactionId) {
+  return ref.watch(transactionRepositoryProvider).watchTransaction(transactionId);
+});

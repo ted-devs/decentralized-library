@@ -55,10 +55,11 @@ class BookshelfScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final item = items[index];
               final book = item.book;
+              final isLentOrNotShared = item.isLent || !book.isShareable;
 
               return Card(
                 elevation: 0,
-                color: item.isLent ? Colors.grey.withAlpha(50) : null,
+                color: isLentOrNotShared ? Colors.grey.withAlpha(50) : null,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(color: Colors.grey.withAlpha(30)),
@@ -68,7 +69,7 @@ class BookshelfScreen extends ConsumerWidget {
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: Opacity(
-                      opacity: item.isLent ? 0.5 : 1.0,
+                      opacity: isLentOrNotShared ? 0.5 : 1.0,
                       child: BookCover(
                         url: book.coverUrl,
                         useCache: true,
@@ -81,7 +82,7 @@ class BookshelfScreen extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: item.isLent ? Colors.grey : null,
+                      color: isLentOrNotShared ? Colors.grey : null,
                     ),
                   ),
                   subtitle: Text(
@@ -95,7 +96,9 @@ class BookshelfScreen extends ConsumerWidget {
                       if (item.isBorrowed)
                         const Icon(Icons.add_circle_outline, color: Colors.green),
                       if (item.isLent)
-                        const Icon(Icons.remove_circle_outline, color: Colors.red),
+                        const Icon(Icons.remove_circle_outline, color: Colors.red)
+                      else if (!book.isShareable)
+                        const Icon(Icons.visibility_off_outlined, color: Colors.grey),
                       const SizedBox(width: 8),
                       const Icon(Icons.chevron_right),
                     ],

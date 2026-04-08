@@ -352,12 +352,20 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                     ],
                   ),
                 ],
-                if (widget.transaction!.status == TransactionStatus.approved)
-                  SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.pickedUp), child: const Text('Mark as Picked Up'))),
+                if (widget.transaction!.status == TransactionStatus.approved) ...[
+                  Row(
+                    children: [
+                      Expanded(child: ElevatedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.pickedUp), child: const Text('Mark as Picked Up'))),
+                      const SizedBox(width: 8),
+                      Expanded(child: OutlinedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.canceled), child: const Text('Cancel Request'))),
+                    ],
+                  ),
+                ],
                 if (widget.transaction!.status == TransactionStatus.pickedUp)
                   SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.returned), child: const Text('Mark as Returned'))),
               ] else ...[
-                if (widget.transaction!.status == TransactionStatus.requested)
+                if (widget.transaction!.status == TransactionStatus.requested || 
+                    widget.transaction!.status == TransactionStatus.approved)
                   SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _isLoading ? null : () => _updateStatus(TransactionStatus.canceled), child: const Text('Cancel Request'))),
               ],
               const SizedBox(height: 24),

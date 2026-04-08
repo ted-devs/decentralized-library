@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class AppUser {
   final String uid;
   final String email;
@@ -9,6 +11,7 @@ class AppUser {
   final bool isAdmin;
   final bool publicContactInfo;
   final List<String> pinnedCommunities;
+  final DateTime createdAt;
 
   AppUser({
     required this.uid,
@@ -17,6 +20,7 @@ class AppUser {
     required this.photoUrl,
     required this.city,
     required this.country,
+    required this.createdAt,
     this.isPro = false,
     this.isAdmin = false,
     this.publicContactInfo = false,
@@ -35,6 +39,7 @@ class AppUser {
       'isAdmin': isAdmin,
       'publicContactInfo': publicContactInfo,
       'pinnedCommunities': pinnedCommunities,
+      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
@@ -50,6 +55,7 @@ class AppUser {
       isAdmin: map['isAdmin'] ?? false,
       publicContactInfo: map['publicContactInfo'] ?? false,
       pinnedCommunities: List<String>.from(map['pinnedCommunities'] ?? []),
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }

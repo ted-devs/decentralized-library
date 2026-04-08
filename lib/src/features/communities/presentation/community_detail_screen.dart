@@ -247,7 +247,12 @@ class _CommunityRequestsView extends ConsumerWidget {
               ),
               onTap: userAsync.value != null ? () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => UserProfileScreen(user: userAsync.value!)),
+                  MaterialPageRoute(
+                    builder: (_) => UserProfileScreen(
+                      user: userAsync.value!,
+                      membership: request,
+                    ),
+                  ),
                 );
               } : null,
               trailing: Row(

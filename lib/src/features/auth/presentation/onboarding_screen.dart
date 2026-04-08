@@ -52,6 +52,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         photoUrl: user.photoURL ?? '',
         city: _cityController.text.trim(),
         country: _selectedCountry!,
+        createdAt: DateTime.now(),
       );
 
       await FirebaseFirestore.instance

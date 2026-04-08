@@ -80,12 +80,12 @@ class UserProfileScreen extends ConsumerWidget {
                 _buildStatItem(
                   context,
                   'Joined',
-                  membership != null ? DateFormat('MMM yyyy').format(membership!.joinedAt) : 'N/A',
+                  DateFormat('MMM yyyy').format(membership?.joinedAt ?? user.createdAt),
                 ),
               ],
             ),
             
-            if (membership != null) ...[
+            if (membership != null && membership!.status == MembershipStatus.approved) ...[
               const SizedBox(height: 48),
               
               // Admin Actions

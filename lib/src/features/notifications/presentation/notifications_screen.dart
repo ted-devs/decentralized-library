@@ -158,16 +158,23 @@ class _NotificationTile extends StatelessWidget {
     final theme = Theme.of(context);
     final timeStr = DateFormat.jm().add_MMMd().format(notification.timestamp);
 
-    return ListTile(
-      tileColor: notification.isRead ? null : theme.colorScheme.primary.withAlpha(10),
+    final tile = ListTile(
+      tileColor: notification.isRead ? null : theme.colorScheme.primary.withAlpha(15),
       leading: CircleAvatar(
-        backgroundColor: _getCategoryColor(notification.type, theme),
-        child: Icon(_getCategoryIcon(notification.type), color: Colors.white, size: 20),
+        backgroundColor: notification.isRead 
+            ? _getCategoryColor(notification.type, theme).withAlpha(100)
+            : _getCategoryColor(notification.type, theme),
+        child: Icon(
+          _getCategoryIcon(notification.type), 
+          color: notification.isRead ? Colors.white.withAlpha(180) : Colors.white, 
+          size: 20
+        ),
       ),
       title: Text(
         notification.title,
         style: TextStyle(
           fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+          color: notification.isRead ? theme.colorScheme.onSurface.withAlpha(150) : theme.colorScheme.onSurface,
           fontSize: 14,
         ),
       ),
@@ -175,16 +182,35 @@ class _NotificationTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 4),
-          Text(notification.body, style: const TextStyle(fontSize: 13)),
+          Text(
+            notification.body, 
+            style: TextStyle(
+              fontSize: 13,
+              color: notification.isRead ? theme.colorScheme.onSurfaceVariant.withAlpha(120) : theme.colorScheme.onSurfaceVariant,
+            )
+          ),
           const SizedBox(height: 4),
-          Text(timeStr, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          Text(
+            timeStr, 
+            style: TextStyle(
+              fontSize: 11, 
+              color: notification.isRead ? Colors.grey[500] : Colors.grey[600]
+            )
+          ),
         ],
       ),
       onTap: () {
         if (!notification.isRead) onRead();
-        // TODO: Handle deep-linking to transaction or community
       },
     );
+
+    if (notification.isRead) {
+      return Opacity(
+        opacity: 0.5,
+        child: tile,
+      );
+    }
+    return tile;
   }
 
   IconData _getCategoryIcon(NotificationType type) {

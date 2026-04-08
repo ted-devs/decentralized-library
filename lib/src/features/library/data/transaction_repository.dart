@@ -170,16 +170,11 @@ class TransactionRepository {
     if (userId == ownerId) isDeletedByOwner = true;
     if (userId == borrowerId) isDeletedByBorrower = true;
 
-    if (isDeletedByOwner && isDeletedByBorrower) {
-      // Both parties deleted, we can physically remove it
-      await docRef.delete();
-    } else {
-      // Soft delete for one party
-      await docRef.update({
-        'isDeletedByOwner': isDeletedByOwner,
-        'isDeletedByBorrower': isDeletedByBorrower,
-      });
-    }
+    // Soft delete for the party requesting it. Data remains in database forever.
+    await docRef.update({
+      'isDeletedByOwner': isDeletedByOwner,
+      'isDeletedByBorrower': isDeletedByBorrower,
+    });
   }
 
   Future<void> deleteMultipleTransactions(List<BookTransaction> transactions, String userId) async {
@@ -193,14 +188,11 @@ class TransactionRepository {
       if (userId == t.ownerId) isDeletedByOwner = true;
       if (userId == t.borrowerId) isDeletedByBorrower = true;
 
-      if (isDeletedByOwner && isDeletedByBorrower) {
-        batch.delete(docRef);
-      } else {
-        batch.update(docRef, {
-          'isDeletedByOwner': isDeletedByOwner,
-          'isDeletedByBorrower': isDeletedByBorrower,
-        });
-      }
+      // Update flags for soft deletion; never physically remove
+      batch.update(docRef, {
+        'isDeletedByOwner': isDeletedByOwner,
+        'isDeletedByBorrower': isDeletedByBorrower,
+      });
     }
     await batch.commit();
   }

@@ -227,6 +227,21 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
+                if (isAdmin)
+                  const SizedBox(height: 16),
+                if (isAdmin)
+                  OutlinedButton.icon(
+                    onPressed: () => _showDeleteCommunityDialog(context),
+                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    label: const Text(
+                      'Delete Community',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
               ],
             ),
           );
@@ -326,6 +341,47 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Left community.')));
+      }
+    }
+  }
+
+  Future<void> _showDeleteCommunityDialog(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Community?'),
+        content: const Text(
+          'This will permanently delete this community and remove all membership records. This action cannot be undone!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete permanently', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(communityRepositoryProvider).deleteCommunity(widget.community.id);
+        if (context.mounted) {
+          // Navigate back twice to get out of Info and Detail screens
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Community deleted.')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete community: $e')),
+          );
+        }
       }
     }
   }

@@ -119,6 +119,25 @@ class CommunityRepository {
     await _firestore.collection('memberships').doc(membershipId).delete();
   }
 
+  Future<void> deleteCommunity(String communityId) async {
+    final batch = _firestore.batch();
+    
+    // 1. Delete the community document
+    batch.delete(_firestore.collection('communities').doc(communityId));
+    
+    // 2. Delete all memberships for this community
+    final memberships = await _firestore
+        .collection('memberships')
+        .where('communityId', isEqualTo: communityId)
+        .get();
+    
+    for (var doc in memberships.docs) {
+      batch.delete(doc.reference);
+    }
+    
+    await batch.commit();
+  }
+
   Future<void> togglePinCommunity(String userId, String communityId, bool pin) async {
     final userRef = _firestore.collection('users').doc(userId);
     if (pin) {

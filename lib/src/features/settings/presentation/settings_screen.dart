@@ -124,7 +124,7 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            appUser?.isPro == true ? 'PRO' : 'FREE',
+                            appUser?.isPro == true ? 'PRO' : 'Free',
                             style: TextStyle(
                               color: appUser?.isPro == true
                                   ? Colors.amber[900]

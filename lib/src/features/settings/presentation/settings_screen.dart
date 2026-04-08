@@ -66,78 +66,86 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => _showEditProfileDialog(
-                      context,
-                      ref,
-                      appUser?.displayName ?? '',
-                      appUser?.city ?? '',
-                      appUser?.country ?? '',
-                    ),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit Profile'),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Membership Badge
-                  GestureDetector(
-                    onTap: () {
-                      if (appUser?.isPro == true) {
-                        _showCancelProDialog(context, ref);
-                      } else {
-                        _showGoProDialog(context, ref);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: appUser?.isPro == true
-                            ? Colors.amber[100]
-                            : Colors.grey[200],
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: appUser?.isPro == true
-                              ? Colors.amber[700]!
-                              : Colors.grey[400]!,
-                          width: 1,
+                  // Actions Row: Edit Profile and Membership
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _showEditProfileDialog(
+                          context,
+                          ref,
+                          appUser?.displayName ?? '',
+                          appUser?.city ?? '',
+                          appUser?.country ?? '',
+                        ),
+                        icon: const Icon(Icons.edit, size: 14),
+                        label: const Text('Edit Profile'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            appUser?.isPro == true
-                                ? Icons.stars_rounded
-                                : Icons.person_outline,
-                            size: 18,
-                            color: appUser?.isPro == true
-                                ? Colors.amber[800]
-                                : Colors.grey[700],
+                      const SizedBox(width: 8),
+                      // Membership Badge
+                      GestureDetector(
+                        onTap: () {
+                          if (appUser?.isPro == true) {
+                            _showCancelProDialog(context, ref);
+                          } else {
+                            _showGoProDialog(context, ref);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            appUser?.isPro == true ? 'PRO' : 'Free',
-                            style: TextStyle(
+                          decoration: BoxDecoration(
+                            color: appUser?.isPro == true
+                                ? Colors.amber[100]
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
                               color: appUser?.isPro == true
-                                  ? Colors.amber[900]
-                                  : Colors.grey[800],
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              letterSpacing: 1.1,
+                                  ? Colors.amber[700]!
+                                  : Colors.grey[400]!,
+                              width: 1,
                             ),
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                appUser?.isPro == true
+                                    ? Icons.stars_rounded
+                                    : Icons.person_outline,
+                                size: 14,
+                                color: appUser?.isPro == true
+                                    ? Colors.amber[800]
+                                    : Colors.grey[700],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                appUser?.isPro == true ? 'PRO' : 'Free',
+                                style: TextStyle(
+                                  color: appUser?.isPro == true
+                                      ? Colors.amber[900]
+                                      : Colors.grey[800],
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),

@@ -81,14 +81,36 @@ class NotificationsScreen extends ConsumerWidget {
               final notification = notifications[index];
               return Dismissible(
                 key: Key(notification.id),
-                direction: DismissDirection.endToStart,
+                direction: DismissDirection.horizontal,
                 background: Container(
+                  color: notification.isRead ? Colors.blue[100] : Colors.blue[700],
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Icon(
+                    notification.isRead ? Icons.mark_as_unread : Icons.done_all,
+                    color: notification.isRead ? Colors.blue[900] : Colors.white,
+                  ),
+                ),
+                secondaryBackground: Container(
                   color: Colors.red[700],
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: const Icon(Icons.delete_outline, color: Colors.white),
                 ),
-                onDismissed: (_) => repo.deleteNotification(notification.id),
+                confirmDismiss: (direction) async {
+                  if (direction == DismissDirection.startToEnd) {
+                    // Swipe Right: Toggle Read Status
+                    await repo.updateReadStatus(notification.id, !notification.isRead);
+                    return false; // Do not dismiss
+                  }
+                  // Swipe Left: Proceed to delete
+                  return true;
+                },
+                onDismissed: (direction) {
+                  if (direction == DismissDirection.endToStart) {
+                    repo.deleteNotification(notification.id);
+                  }
+                },
                 child: _NotificationTile(
                   notification: notification,
                   onRead: () => repo.markAsRead(notification.id),

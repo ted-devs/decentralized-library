@@ -74,6 +74,12 @@ class NotificationRepository {
     }
     await batch.commit();
   }
+
+  Future<void> updateReadStatus(String notificationId, bool isRead) async {
+    await _firestore.collection('notifications').doc(notificationId).update({
+      'isRead': isRead,
+    });
+  }
 }
 
 // Providers

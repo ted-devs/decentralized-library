@@ -140,21 +140,37 @@ class CommunityRepository {
 
   Future<void> togglePinCommunity(String userId, String communityId, bool pin) async {
     final userRef = _firestore.collection('users').doc(userId);
-    if (pin) {
-      // Limit to 3 pins for clean UI
-      final doc = await userRef.get();
-      final currentPins = List<String>.from(doc.data()?['pinnedCommunities'] ?? []);
-      if (currentPins.length >= 3) {
-        throw Exception('You can only pin up to 3 communities.');
+    final userDoc = await userRef.get();
+    final List<String> currentPins = List<String>.from(userDoc.data()?['pinnedCommunities'] ?? []);
+
+    // Validation Phase: Check if all currently pinned communities still exist
+    final existenceResults = await Future.wait(
+      currentPins.map((id) => _firestore.collection('communities').doc(id).get().then((doc) => doc.exists))
+    );
+
+    final List<String> cleanedPins = [];
+    for (int i = 0; i < currentPins.length; i++) {
+      if (existenceResults[i]) {
+        cleanedPins.add(currentPins[i]);
       }
-      await userRef.update({
-        'pinnedCommunities': FieldValue.arrayUnion([communityId]),
-      });
-    } else {
-      await userRef.update({
-        'pinnedCommunities': FieldValue.arrayRemove([communityId]),
-      });
     }
+
+    if (pin) {
+      if (!cleanedPins.contains(communityId)) {
+        if (cleanedPins.length >= 3) {
+          // If after cleaning we are still at limit, then block
+          throw Exception('You can only pin up to 3 communities.');
+        }
+        cleanedPins.add(communityId);
+      }
+    } else {
+      cleanedPins.remove(communityId);
+    }
+
+    // Update with the cleaned (and potentially updated) list
+    await userRef.update({
+      'pinnedCommunities': cleanedPins,
+    });
   }
 }
 

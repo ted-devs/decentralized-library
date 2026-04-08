@@ -30,22 +30,30 @@ class SettingsScreen extends ConsumerWidget {
                   CircleAvatar(
                     radius: 55,
                     backgroundColor: theme.colorScheme.primary.withAlpha(50),
-                    backgroundImage: appUser?.photoUrl.isNotEmpty == true 
-                        ? NetworkImage(appUser!.photoUrl) 
+                    backgroundImage: appUser?.photoUrl.isNotEmpty == true
+                        ? NetworkImage(appUser!.photoUrl)
                         : null,
-                    child: appUser?.photoUrl.isEmpty == true 
-                        ? Icon(Icons.person, size: 55, color: theme.colorScheme.primary) 
+                    child: appUser?.photoUrl.isEmpty == true
+                        ? Icon(
+                            Icons.person,
+                            size: 55,
+                            color: theme.colorScheme.primary,
+                          )
                         : null,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     appUser?.displayName ?? 'Not logged in',
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     appUser?.email ?? '',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
                   ),
                   if (appUser?.city.isNotEmpty == true) ...[
                     const SizedBox(height: 4),
@@ -60,8 +68,8 @@ class SettingsScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () => _showEditProfileDialog(
-                      context, 
-                      ref, 
+                      context,
+                      ref,
                       appUser?.displayName ?? '',
                       appUser?.city ?? '',
                       appUser?.country ?? '',
@@ -70,7 +78,9 @@ class SettingsScreen extends ConsumerWidget {
                     label: const Text('Edit Profile'),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -84,12 +94,19 @@ class SettingsScreen extends ConsumerWidget {
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: appUser?.isPro == true ? Colors.amber[100] : Colors.grey[200],
+                        color: appUser?.isPro == true
+                            ? Colors.amber[100]
+                            : Colors.grey[200],
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: appUser?.isPro == true ? Colors.amber[700]! : Colors.grey[400]!,
+                          color: appUser?.isPro == true
+                              ? Colors.amber[700]!
+                              : Colors.grey[400]!,
                           width: 1,
                         ),
                       ),
@@ -97,15 +114,21 @@ class SettingsScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            appUser?.isPro == true ? Icons.stars_rounded : Icons.person_outline,
+                            appUser?.isPro == true
+                                ? Icons.stars_rounded
+                                : Icons.person_outline,
                             size: 18,
-                            color: appUser?.isPro == true ? Colors.amber[800] : Colors.grey[700],
+                            color: appUser?.isPro == true
+                                ? Colors.amber[800]
+                                : Colors.grey[700],
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            appUser?.isPro == true ? 'PRO MEMBER' : 'FREE PLAN',
+                            appUser?.isPro == true ? 'PRO' : 'FREE',
                             style: TextStyle(
-                              color: appUser?.isPro == true ? Colors.amber[900] : Colors.grey[800],
+                              color: appUser?.isPro == true
+                                  ? Colors.amber[900]
+                                  : Colors.grey[800],
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                               letterSpacing: 1.1,
@@ -120,18 +143,21 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
             const Divider(height: 1),
-            
+
             // Sub-Settings
             _SettingsTile(
               leading: Icon(
-                themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+                themeMode == ThemeMode.dark
+                    ? Icons.dark_mode
+                    : Icons.light_mode,
                 color: theme.colorScheme.primary,
               ),
               title: 'Dark Mode',
               subtitle: 'Current: ${themeMode.name.toUpperCase()}',
               trailing: Switch(
                 value: themeMode == ThemeMode.dark,
-                onChanged: (_) => ref.read(themeModeProvider.notifier).toggleTheme(),
+                onChanged: (_) =>
+                    ref.read(themeModeProvider.notifier).toggleTheme(),
               ),
             ),
             const Divider(height: 1, indent: 56),
@@ -143,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(height: 1),
             const SizedBox(height: 40),
-            
+
             // Sign Out Option at the Bottom
             _SettingsTile(
               leading: const Icon(Icons.logout, color: Colors.red),
@@ -156,8 +182,14 @@ class SettingsScreen extends ConsumerWidget {
                     title: const Text('Sign Out?'),
                     content: const Text('Are you sure you want to sign out?'),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign Out')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Sign Out'),
+                      ),
                     ],
                   ),
                 );
@@ -175,23 +207,25 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showEditProfileDialog(
-    BuildContext context, 
-    WidgetRef ref, 
-    String currentName, 
-    String currentCity, 
+    BuildContext context,
+    WidgetRef ref,
+    String currentName,
+    String currentCity,
     String currentCountry,
   ) {
     final nameController = TextEditingController(text: currentName);
     final cityController = TextEditingController(text: currentCity);
-    
+
     // Normalize currentCountry to match an item in the countries list (handling flag prefixes)
-    String? selectedCountry = countries.contains(currentCountry) 
-        ? currentCountry 
+    String? selectedCountry = countries.contains(currentCountry)
+        ? currentCountry
         : countries.cast<String?>().firstWhere(
-            (c) => c!.split(' ').last == currentCountry || c.contains(currentCountry),
+            (c) =>
+                c!.split(' ').last == currentCountry ||
+                c.contains(currentCountry),
             orElse: () => null,
           );
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -235,11 +269,21 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
             TextButton(
               onPressed: () {
-                if (nameController.text.isNotEmpty && cityController.text.isNotEmpty && selectedCountry != null) {
-                  _mockUpdateProfile(ref, nameController.text, cityController.text, selectedCountry!);
+                if (nameController.text.isNotEmpty &&
+                    cityController.text.isNotEmpty &&
+                    selectedCountry != null) {
+                  _mockUpdateProfile(
+                    ref,
+                    nameController.text,
+                    cityController.text,
+                    selectedCountry!,
+                  );
                   Navigator.pop(context);
                 }
               },
@@ -268,7 +312,10 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Later')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Later'),
+          ),
           ElevatedButton(
             onPressed: () {
               _mockUpdatePro(ref, true);
@@ -286,15 +333,23 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Pro?'),
-        content: const Text('Are you sure you want to downgrade? You will lose access to premium features like increased borrowing limits.'),
+        content: const Text(
+          'Are you sure you want to downgrade? You will lose access to premium features like increased borrowing limits.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Keep Pro')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Keep Pro'),
+          ),
           TextButton(
             onPressed: () {
               _mockUpdatePro(ref, false);
               Navigator.pop(context);
             },
-            child: const Text('Cancel Subscription', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Cancel Subscription',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -304,10 +359,17 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _mockUpdatePro(WidgetRef ref, bool isPro) async {
     final user = ref.read(appUserProvider).value;
     if (user == null) return;
-    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'isPro': isPro});
+    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({
+      'isPro': isPro,
+    });
   }
 
-  Future<void> _mockUpdateProfile(WidgetRef ref, String newName, String newCity, String newCountry) async {
+  Future<void> _mockUpdateProfile(
+    WidgetRef ref,
+    String newName,
+    String newCity,
+    String newCountry,
+  ) async {
     final user = ref.read(appUserProvider).value;
     if (user == null) return;
     await ref.read(firestoreProvider).collection('users').doc(user.uid).update({
@@ -339,14 +401,16 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: leading,
-      title: Text(title, style: TextStyle(color: titleColor, fontWeight: FontWeight.w500)),
+      title: Text(
+        title,
+        style: TextStyle(color: titleColor, fontWeight: FontWeight.w500),
+      ),
       subtitle: subtitle != null ? Text(subtitle!) : null,
       trailing: trailing,
       onTap: onTap,
     );
   }
 }
-
 
 class _ProFeature extends StatelessWidget {
   final String text;

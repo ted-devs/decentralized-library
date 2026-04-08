@@ -31,10 +31,10 @@ class BookshelfRepository {
     return _firestore
         .collection('books')
         .where('ownerId', whereIn: limitedIds)
-        .where('isShareable', isEqualTo: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => Book.fromMap(doc.data(), doc.id))
+            .where((book) => book.isShareable)
             .toList());
   }
 
@@ -42,11 +42,15 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('ownerId', isEqualTo: userId)
-        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
             .where((t) => !t.isDeletedByOwner) 
+            .where((t) => [
+                  TransactionStatus.approved,
+                  TransactionStatus.pickedUp,
+                  TransactionStatus.overdue,
+                ].contains(t.status))
             .toList());
   }
 
@@ -54,14 +58,14 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
-        .where('status', whereIn: ['pickedUp', 'overdue'])
         .snapshots()
         .switchMap((snapshot) {
-          final books = snapshot.docs
+          final activeTransactions = snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
-            .where((t) => !t.isDeletedByBorrower); 
+            .where((t) => !t.isDeletedByBorrower)
+            .where((t) => t.status == TransactionStatus.pickedUp || t.status == TransactionStatus.overdue); 
           
-          final bookIds = books.map((t) => t.bookId).toList();
+          final bookIds = activeTransactions.map((t) => t.bookId).toSet().toList();
           
           if (bookIds.isEmpty) return Stream.value([]);
           
@@ -85,10 +89,13 @@ class BookshelfRepository {
     final active = await _firestore
         .collection('transactions')
         .where('bookId', isEqualTo: bookId)
-        .where('status', whereIn: ['requested', 'approved', 'pickedUp', 'overdue'])
         .get();
     
-    if (active.docs.isNotEmpty) {
+    final isTrulyActive = active.docs
+        .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+        .any((t) => t.status != TransactionStatus.returned && t.status != TransactionStatus.canceled);
+    
+    if (isTrulyActive) {
       throw Exception('Cannot remove book while it is in an active transaction.');
     }
     

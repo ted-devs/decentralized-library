@@ -40,9 +40,8 @@ class TransactionRepository {
         .map((snapshot) {
           final activeDocs = snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
-            .where((t) => !t.isDeletedByBorrower) // Local filter
+            .where((t) => !t.isDeletedByBorrower)
             .where((t) {
-              // Safe parsing to check if it's active (not returned or canceled)
               return t.status != TransactionStatus.returned && t.status != TransactionStatus.canceled;
             });
           
@@ -56,18 +55,19 @@ class TransactionRepository {
     return _firestore
         .collection('transactions')
         .where('bookId', isEqualTo: bookId)
-        .where('status', whereIn: [
-          TransactionStatus.approved.name,
-          TransactionStatus.pickedUp.name,
-          TransactionStatus.overdue.name,
-        ])
         .snapshots()
         .map((snapshot) {
-          // We don't filter by isDeleted here because global availability 
-          // depends on the actual physical state of the book.
-          return snapshot.docs.isNotEmpty
-              ? BookTransaction.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id)
-              : null;
+          final confirmedStatuses = [
+            TransactionStatus.approved,
+            TransactionStatus.pickedUp,
+            TransactionStatus.overdue,
+          ];
+          
+          final matches = snapshot.docs
+              .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
+              .where((t) => confirmedStatuses.contains(t.status));
+              
+          return matches.isNotEmpty ? matches.first : null;
         });
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
@@ -8,12 +9,14 @@ import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repo
 
 class UserProfileScreen extends ConsumerWidget {
   final AppUser user;
-  final Membership membership;
+  final Membership? membership;
+  final String? prefillBookTitle;
 
   const UserProfileScreen({
     super.key,
     required this.user,
-    required this.membership,
+    this.membership,
+    this.prefillBookTitle,
   });
 
   @override
@@ -38,9 +41,26 @@ class UserProfileScreen extends ConsumerWidget {
               user.displayName,
               style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-            Text(
-              user.email,
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+            InkWell(
+              onTap: () => _launchEmail(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.email_outlined, size: 16, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      user.email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 32),
             
@@ -60,57 +80,84 @@ class UserProfileScreen extends ConsumerWidget {
                 _buildStatItem(
                   context,
                   'Joined',
-                  DateFormat('MMM yyyy').format(membership.joinedAt),
+                  membership != null ? DateFormat('MMM yyyy').format(membership!.joinedAt) : 'N/A',
                 ),
               ],
             ),
             
-            const SizedBox(height: 48),
-            
-            // Admin Actions
-            Card(
-              color: Colors.red.shade50,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.red.shade100),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Admin Actions',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.red.shade900,
-                        fontWeight: FontWeight.bold,
+            if (membership != null) ...[
+              const SizedBox(height: 48),
+              
+              // Admin Actions
+              Card(
+                color: Colors.red.shade50,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.red.shade100),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Admin Actions',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.red.shade900,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Removing this member will revoke their access to the community library and remove their books from the collection.',
-                      style: TextStyle(fontSize: 13, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => _showRemoveConfirmation(context, ref),
-                      icon: const Icon(Icons.person_remove_rounded),
-                      label: const Text('Remove from Community'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Removing this member will revoke their access to the community library and remove their books from the collection.',
+                        style: TextStyle(fontSize: 13, color: Colors.black87),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _showRemoveConfirmation(context, ref),
+                        icon: const Icon(Icons.person_remove_rounded),
+                        label: const Text('Remove from Community'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _launchEmail(BuildContext context) async {
+    final String subject = Uri.encodeComponent(
+      prefillBookTitle != null 
+        ? 'Decentralized Library - Inquiry regarding "$prefillBookTitle"'
+        : 'Decentralized Library - Inquiry'
+    );
+    final String body = Uri.encodeComponent(
+      prefillBookTitle != null
+        ? 'Hi ${user.displayName},\n\nI am interested in coordinating the exchange of the book "$prefillBookTitle". Let me know when and where we can meet!\n\nBest regards,'
+        : 'Hi ${user.displayName},\n\n'
+    );
+    
+    final Uri mailUri = Uri.parse('mailto:${user.email}?subject=$subject&body=$body');
+    
+    if (await canLaunchUrl(mailUri)) {
+      await launchUrl(mailUri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open email app.')),
+        );
+      }
+    }
   }
 
   Widget _buildStatItem(BuildContext context, String label, String value) {
@@ -147,8 +194,8 @@ class UserProfileScreen extends ConsumerWidget {
       ),
     );
 
-    if (confirm == true) {
-      await ref.read(communityRepositoryProvider).leaveCommunity(membership.id);
+    if (confirm == true && membership != null) {
+      await ref.read(communityRepositoryProvider).leaveCommunity(membership!.id);
       if (context.mounted) {
         Navigator.pop(context); // Close profile screen
         ScaffoldMessenger.of(context).showSnackBar(

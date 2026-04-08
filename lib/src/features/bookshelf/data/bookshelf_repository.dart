@@ -100,11 +100,19 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
   final borrowedBooksStream = repo.watchBorrowedBooks(user.uid); 
   final lentTransactionsStream = repo.watchLentTransactions(user.uid); 
 
-  return CombineLatestStream.combine3(
+  // New: Watch all transactions where user is the borrower to match with borrowed books
+  final borrowedTransactionsStream = FirebaseFirestore.instance
+      .collection('transactions')
+      .where('borrowerId', isEqualTo: user.uid)
+      .snapshots()
+      .map((snap) => snap.docs.map((doc) => BookTransaction.fromMap(doc.data(), doc.id)).toList());
+
+  return CombineLatestStream.combine4(
     ownedStream,
     borrowedBooksStream,
     lentTransactionsStream,
-    (List<Book> owned, List<Book> borrowed, List<BookTransaction> lent) {
+    borrowedTransactionsStream,
+    (List<Book> owned, List<Book> borrowed, List<BookTransaction> lent, List<BookTransaction> borrowedTx) {
       final items = <BookshelfItem>[];
 
       for (var book in owned) {
@@ -117,8 +125,10 @@ final bookshelfProvider = StreamProvider<List<BookshelfItem>>((ref) {
       }
 
       for (var book in borrowed) {
+        final activeBorrowed = borrowedTx.where((t) => t.bookId == book.id).firstOrNull;
         items.add(BookshelfItem(
           book: book,
+          transaction: activeBorrowed,
           isBorrowed: true,
         ));
       }

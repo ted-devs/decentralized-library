@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/auth_service.dart';
 import '../application/user_settings_service.dart';
+import '../../../shared/constants/countries.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -37,20 +38,9 @@ class SettingsScreen extends ConsumerWidget {
                         : null,
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 48), // Spacer to balance the edit icon
-                      Text(
-                        appUser?.displayName ?? 'Not logged in',
-                        style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, size: 18),
-                        onPressed: () => _showEditNameDialog(context, ref, appUser?.displayName ?? ''),
-                        tooltip: 'Edit name',
-                      ),
-                    ],
+                  Text(
+                    appUser?.displayName ?? 'Not logged in',
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -67,7 +57,23 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _showEditProfileDialog(
+                      context, 
+                      ref, 
+                      appUser?.displayName ?? '',
+                      appUser?.city ?? '',
+                      appUser?.country ?? '',
+                    ),
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Edit Profile'),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   // Membership Badge
                   GestureDetector(
                     onTap: () {
@@ -168,29 +174,79 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditNameDialog(BuildContext context, WidgetRef ref, String currentName) {
-    final controller = TextEditingController(text: currentName);
+  void _showEditProfileDialog(
+    BuildContext context, 
+    WidgetRef ref, 
+    String currentName, 
+    String currentCity, 
+    String currentCountry,
+  ) {
+    final nameController = TextEditingController(text: currentName);
+    final cityController = TextEditingController(text: currentCity);
+    
+    // Normalize currentCountry to match an item in the countries list (handling flag prefixes)
+    String? selectedCountry = countries.contains(currentCountry) 
+        ? currentCountry 
+        : countries.cast<String?>().firstWhere(
+            (c) => c!.split(' ').last == currentCountry || c.contains(currentCountry),
+            orElse: () => null,
+          );
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Name'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'Display Name'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                _mockUpdateName(ref, controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Profile'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Display Name'),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: cityController,
+                  decoration: const InputDecoration(labelText: 'City'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedCountry,
+                  hint: const Text('Select Country'),
+                  decoration: const InputDecoration(labelText: 'Country'),
+                  items: countries.map((country) {
+                    return DropdownMenuItem(
+                      value: country,
+                      child: Text(country),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedCountry = value;
+                      });
+                    }
+                  },
+                  isExpanded: true,
+                ),
+              ],
+            ),
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () {
+                if (nameController.text.isNotEmpty && cityController.text.isNotEmpty && selectedCountry != null) {
+                  _mockUpdateProfile(ref, nameController.text, cityController.text, selectedCountry!);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -251,10 +307,14 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'isPro': isPro});
   }
 
-  Future<void> _mockUpdateName(WidgetRef ref, String newName) async {
+  Future<void> _mockUpdateProfile(WidgetRef ref, String newName, String newCity, String newCountry) async {
     final user = ref.read(appUserProvider).value;
     if (user == null) return;
-    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({'displayName': newName});
+    await ref.read(firestoreProvider).collection('users').doc(user.uid).update({
+      'displayName': newName,
+      'city': newCity,
+      'country': newCountry,
+    });
   }
 }
 

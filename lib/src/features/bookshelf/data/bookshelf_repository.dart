@@ -41,7 +41,7 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('ownerId', isEqualTo: userId)
-        .where('status', whereIn: ['approved', 'picked_up', 'overdue'])
+        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
@@ -52,7 +52,7 @@ class BookshelfRepository {
     return _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
-        .where('status', whereIn: ['approved', 'picked_up', 'overdue'])
+        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
         .snapshots()
         .switchMap((snapshot) {
           final bookIds = snapshot.docs.map((doc) => doc.get('bookId') as String).toList();
@@ -78,7 +78,7 @@ class BookshelfRepository {
     final active = await _firestore
         .collection('transactions')
         .where('bookId', isEqualTo: bookId)
-        .where('status', whereIn: ['requested', 'approved', 'picked_up', 'overdue'])
+        .where('status', whereIn: ['requested', 'approved', 'pickedUp', 'overdue'])
         .get();
     
     if (active.docs.isNotEmpty) {

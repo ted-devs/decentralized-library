@@ -54,6 +54,22 @@ class BookTransaction {
     };
   }
 
+  bool isOverdue() {
+    if (status != TransactionStatus.pickedUp || pickedUpDate == null) return false;
+    final dueDate = pickedUpDate!.add(Duration(days: durationWeeks * 7));
+    return DateTime.now().isAfter(dueDate);
+  }
+
+  static TransactionStatus _parseStatus(String statusStr) {
+    final normalized = statusStr.toLowerCase().replaceAll('_', '');
+    for (var value in TransactionStatus.values) {
+      if (value.name.toLowerCase().replaceAll('_', '') == normalized) {
+        return value;
+      }
+    }
+    return TransactionStatus.requested;
+  }
+
   factory BookTransaction.fromMap(Map<String, dynamic> map, String id) {
     return BookTransaction(
       id: id,
@@ -61,7 +77,7 @@ class BookTransaction {
       ownerId: map['ownerId'] ?? '',
       borrowerId: map['borrowerId'] ?? '',
       communityId: map['communityId'] ?? '',
-      status: TransactionStatus.values.byName(map['status'] ?? 'requested'),
+      status: _parseStatus(map['status'] ?? 'requested'),
       durationWeeks: map['durationWeeks'] ?? 4,
       requestedDate: (map['requestedDate'] as Timestamp?)?.toDate(),
       approvedDate: (map['approvedDate'] as Timestamp?)?.toDate(),
@@ -69,11 +85,5 @@ class BookTransaction {
       returnedDate: (map['returnedDate'] as Timestamp?)?.toDate(),
       canceledDate: (map['canceledDate'] as Timestamp?)?.toDate(),
     );
-  }
-
-  bool isOverdue() {
-    if (status != TransactionStatus.pickedUp || pickedUpDate == null) return false;
-    final dueDate = pickedUpDate!.add(Duration(days: durationWeeks * 7));
-    return DateTime.now().isAfter(dueDate);
   }
 }

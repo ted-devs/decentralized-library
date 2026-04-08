@@ -39,6 +39,7 @@ class DecentralizedLibraryApp extends ConsumerWidget {
         ),
       ),
       themeMode: themeMode,
+      themeAnimationDuration: Duration.zero,
       home: const AuthWrapper(),
     );
   }

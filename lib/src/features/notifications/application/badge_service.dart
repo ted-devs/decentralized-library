@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 import '../../auth/application/auth_service.dart';
 import '../../communities/data/community_repository.dart';
 import '../../library/data/transaction_repository.dart';
+import '../../library/domain/book_transaction.dart';
 
 /// Provider to check if any managed community has pending membership requests.
 final hasPendingMembershipsProvider = StreamProvider<bool>((ref) {
@@ -43,12 +45,27 @@ extension BadgeExtensions on CommunityRepository {
   }
 }
 
-/// Provider to check if there are any incoming borrow requests.
+/// Provider to check if there are any active transactions (incoming or outgoing).
 final hasIncomingRequestsProvider = StreamProvider<bool>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value(false);
 
-  return ref.watch(transactionRepositoryProvider)
-      .watchIncomingRequests(user.uid)
-      .map((requests) => requests.isNotEmpty);
+  final repo = ref.watch(transactionRepositoryProvider);
+  
+  final activeStatuses = [
+    TransactionStatus.requested,
+    TransactionStatus.approved,
+    TransactionStatus.pickedUp,
+    TransactionStatus.overdue,
+  ];
+
+  return CombineLatestStream.combine2(
+    repo.watchIncomingRequests(user.uid),
+    repo.watchOutgoingRequests(user.uid),
+    (incoming, outgoing) {
+      final hasActiveIncoming = incoming.any((t) => activeStatuses.contains(t.status));
+      final hasActiveOutgoing = outgoing.any((t) => activeStatuses.contains(t.status));
+      return hasActiveIncoming || hasActiveOutgoing;
+    },
+  );
 });

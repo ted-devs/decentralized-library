@@ -38,6 +38,18 @@ class RequestsHubScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const activeStatuses = [
+      TransactionStatus.requested,
+      TransactionStatus.approved,
+      TransactionStatus.pickedUp,
+      TransactionStatus.overdue,
+    ];
+
+    bool hasActive(List<BookTransaction>? items) {
+      if (items == null) return false;
+      return items.any((t) => activeStatuses.contains(t.status));
+    }
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -47,13 +59,13 @@ class RequestsHubScreen extends ConsumerWidget {
             tabs: [
               Tab(
                 child: Badge(
-                  isLabelVisible: ref.watch(incomingRequestsProvider).value?.isNotEmpty ?? false,
+                  isLabelVisible: hasActive(ref.watch(incomingRequestsProvider).value),
                   child: const Text('To Me (Lending)'),
                 ),
               ),
               Tab(
                 child: Badge(
-                  isLabelVisible: ref.watch(outgoingRequestsProvider).value?.isNotEmpty ?? false,
+                  isLabelVisible: hasActive(ref.watch(outgoingRequestsProvider).value),
                   child: const Text('By Me (Borrowing)'),
                 ),
               ),

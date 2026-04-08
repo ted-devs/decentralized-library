@@ -156,6 +156,17 @@ class CommunityRepository {
     }
 
     if (pin) {
+      // Membership Phase: Verify user is an approved member
+      final membershipId = '${userId}_${communityId}';
+      final membershipDoc = await _firestore.collection('memberships').doc(membershipId).get();
+      
+      final isApproved = membershipDoc.exists && 
+                         membershipDoc.data()?['status'] == MembershipStatus.approved.name;
+      
+      if (!isApproved) {
+        throw Exception('You can only pin communities that you are a member of.');
+      }
+
       if (!cleanedPins.contains(communityId)) {
         if (cleanedPins.length >= 3) {
           // If after cleaning we are still at limit, then block

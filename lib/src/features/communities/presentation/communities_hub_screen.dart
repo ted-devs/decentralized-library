@@ -115,7 +115,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (appUser != null)
+            if (appUser != null && (isApproved || community.adminId == appUser.uid))
               IconButton(
                 icon: Icon(
                   isPinned ? Icons.push_pin : Icons.push_pin_outlined,

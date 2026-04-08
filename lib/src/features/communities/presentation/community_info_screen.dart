@@ -40,6 +40,14 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
             builder: (context, ref, _) {
               final appUser = ref.watch(appUserProvider).value;
               if (appUser == null) return const SizedBox.shrink();
+
+              // Only show pin button if they are an approved member or admin
+              final memberships = ref.watch(userMembershipsProvider(appUser.uid)).value ?? [];
+              final isApproved = appUser.uid == widget.community.adminId || 
+                                memberships.any((m) => m.communityId == widget.community.id && m.status == MembershipStatus.approved);
+              
+              if (!isApproved) return const SizedBox.shrink();
+
               final isPinned = appUser.pinnedCommunities.contains(
                 widget.community.id,
               );

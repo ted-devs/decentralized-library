@@ -186,9 +186,9 @@ class HomeScreen extends ConsumerWidget {
                         fontSize: 14,
                       ),
                     ),
-                    subtitle: const Text(
-                      'Quick Access',
-                      style: TextStyle(fontSize: 11),
+                    subtitle: Text(
+                      community.adminId == ref.watch(authStateProvider).value?.uid ? 'Manage' : 'View',
+                      style: const TextStyle(fontSize: 11),
                     ),
                     trailing: const Icon(Icons.chevron_right, size: 18),
                     onTap: () => Navigator.of(context).push(

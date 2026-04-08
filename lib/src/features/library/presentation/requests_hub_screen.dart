@@ -160,11 +160,14 @@ class _TransactionTile extends ConsumerWidget {
       );
 
       if (confirmed == true) {
-        await ref.read(transactionRepositoryProvider).deleteTransaction(transaction.id);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Request deleted.')),
-          );
+        final user = ref.read(authStateProvider).value;
+        if (user != null) {
+          await ref.read(transactionRepositoryProvider).deleteTransaction(transaction.id, user.uid);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('History item removed.')),
+            );
+          }
         }
       }
     }

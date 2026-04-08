@@ -22,6 +22,8 @@ class BookTransaction {
   final DateTime? pickedUpDate;
   final DateTime? returnedDate;
   final DateTime? canceledDate;
+  final bool isDeletedByOwner;
+  final bool isDeletedByBorrower;
 
   BookTransaction({
     required this.id,
@@ -36,6 +38,8 @@ class BookTransaction {
     this.pickedUpDate,
     this.returnedDate,
     this.canceledDate,
+    this.isDeletedByOwner = false,
+    this.isDeletedByBorrower = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -51,6 +55,8 @@ class BookTransaction {
       'pickedUpDate': pickedUpDate != null ? Timestamp.fromDate(pickedUpDate!) : null,
       'returnedDate': returnedDate != null ? Timestamp.fromDate(returnedDate!) : null,
       'canceledDate': canceledDate != null ? Timestamp.fromDate(canceledDate!) : null,
+      'isDeletedByOwner': isDeletedByOwner,
+      'isDeletedByBorrower': isDeletedByBorrower,
     };
   }
 
@@ -84,6 +90,8 @@ class BookTransaction {
       pickedUpDate: (map['pickedUpDate'] as Timestamp?)?.toDate(),
       returnedDate: (map['returnedDate'] as Timestamp?)?.toDate(),
       canceledDate: (map['canceledDate'] as Timestamp?)?.toDate(),
+      isDeletedByOwner: map['isDeletedByOwner'] ?? false,
+      isDeletedByBorrower: map['isDeletedByBorrower'] ?? false,
     );
   }
 }

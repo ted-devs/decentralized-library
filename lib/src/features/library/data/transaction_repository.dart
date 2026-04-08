@@ -13,7 +13,7 @@ class TransactionRepository {
     return _firestore
         .collection('transactions')
         .where('ownerId', isEqualTo: userId)
-        .where('status', isEqualTo: TransactionStatus.requested.name)
+        .where('isDeletedByOwner', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
@@ -24,6 +24,7 @@ class TransactionRepository {
     return _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
+        .where('isDeletedByBorrower', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => BookTransaction.fromMap(doc.data(), doc.id))
@@ -35,6 +36,7 @@ class TransactionRepository {
         .collection('transactions')
         .where('borrowerId', isEqualTo: userId)
         .where('bookId', isEqualTo: bookId)
+        .where('isDeletedByBorrower', isEqualTo: false)
         .snapshots()
         .map((snapshot) {
           final activeDocs = snapshot.docs.where((doc) {
@@ -64,6 +66,8 @@ class TransactionRepository {
         ])
         .snapshots()
         .map((snapshot) {
+          // We don't filter by isDeleted here because global availability 
+          // depends on the actual physical state of the book.
           return snapshot.docs.isNotEmpty
               ? BookTransaction.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id)
               : null;
@@ -96,6 +100,8 @@ class TransactionRepository {
       'status': TransactionStatus.requested.name,
       'durationWeeks': 4,
       'requestedDate': FieldValue.serverTimestamp(),
+      'isDeletedByOwner': false,
+      'isDeletedByBorrower': false,
     });
 
     // Send notification to book owner
@@ -152,8 +158,31 @@ class TransactionRepository {
     });
   }
 
-  Future<void> deleteTransaction(String transactionId) async {
-    await _firestore.collection('transactions').doc(transactionId).delete();
+  Future<void> deleteTransaction(String transactionId, String userId) async {
+    final docRef = _firestore.collection('transactions').doc(transactionId);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final ownerId = data['ownerId'] as String;
+    final borrowerId = data['borrowerId'] as String;
+
+    bool isDeletedByOwner = data['isDeletedByOwner'] ?? false;
+    bool isDeletedByBorrower = data['isDeletedByBorrower'] ?? false;
+
+    if (userId == ownerId) isDeletedByOwner = true;
+    if (userId == borrowerId) isDeletedByBorrower = true;
+
+    if (isDeletedByOwner && isDeletedByBorrower) {
+      // Both parties deleted, we can physically remove it
+      await docRef.delete();
+    } else {
+      // Soft delete for one party
+      await docRef.update({
+        'isDeletedByOwner': isDeletedByOwner,
+        'isDeletedByBorrower': isDeletedByBorrower,
+      });
+    }
   }
 
   Future<void> cancelTransaction(String transactionId) async {

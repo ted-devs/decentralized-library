@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../domain/app_user.dart';
 import '../../../shared/constants/countries.dart';
 import '../../../shared/utils/snackbar_utils.dart';
+import '../../../shared/widgets/country_picker_field.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final User firebaseUser;
@@ -126,20 +127,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // Country Dropdown
-                  DropdownButtonFormField<String>(
-                    value: _selectedCountry,
-                    decoration: const InputDecoration(
-                      labelText: 'Country',
-                      prefixIcon: Icon(Icons.public),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: countries.map((country) {
-                      return DropdownMenuItem(
-                        value: country,
-                        child: Text(country),
-                      );
-                    }).toList(),
+                  // Country Picker
+                  CountryPickerField(
+                    initialValue: _selectedCountry,
+                    prefixIcon: const Icon(Icons.public),
                     onChanged: (value) {
                       setState(() {
                         _selectedCountry = value;
@@ -147,7 +138,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     },
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Please select your country' : null,
-                    isExpanded: true, // Prevents overflow for long country names
                   ),
                   const SizedBox(height: 16),
 

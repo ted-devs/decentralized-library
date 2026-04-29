@@ -5,6 +5,7 @@ import '../../auth/domain/app_user.dart';
 import '../application/user_settings_service.dart';
 import '../../../shared/constants/countries.dart';
 import '../../../shared/utils/snackbar_utils.dart';
+import '../../../shared/widgets/country_picker_field.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -268,12 +269,8 @@ class SettingsScreen extends ConsumerWidget {
                 decoration: const InputDecoration(labelText: 'City'),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedCountry.isEmpty ? null : selectedCountry,
-                decoration: const InputDecoration(labelText: 'Country'),
-                items: countries
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
+              CountryPickerField(
+                initialValue: selectedCountry,
                 onChanged: (val) => selectedCountry = val ?? '',
               ),
               const SizedBox(height: 16),

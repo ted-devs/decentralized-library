@@ -528,9 +528,71 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                               }),
                               if (transaction.pickedUpDate != null)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: Text(
-                                    'Due: ${transaction.pickedUpDate!.add(Duration(days: transaction.durationWeeks * 7)).toLocal().toString().split(' ')[0]}',
+                                  padding: const EdgeInsets.only(top: 12.0),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.event_available,
+                                              size: 14, color: Colors.grey),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Picked up: ${transaction.pickedUpDate!.toLocal().toString().split(' ')[0]}',
+                                            style:
+                                                const TextStyle(fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                      if (transaction.returnedDate != null)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 4.0),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.event_note,
+                                                  size: 14,
+                                                  color: Colors.green),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Returned: ${transaction.returnedDate!.toLocal().toString().split(' ')[0]}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      if (transaction.returnedDate == null)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 4.0),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.timer_outlined,
+                                                  size: 14,
+                                                  color: transaction.isOverdue()
+                                                      ? Colors.red
+                                                      : Colors.grey),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Due: ${transaction.pickedUpDate!.add(Duration(days: transaction.durationWeeks * 7)).toLocal().toString().split(' ')[0]}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: transaction.isOverdue()
+                                                      ? Colors.red
+                                                      : null,
+                                                  fontWeight:
+                                                      transaction.isOverdue()
+                                                          ? FontWeight.bold
+                                                          : null,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
                             ],

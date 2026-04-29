@@ -6,6 +6,7 @@ import '../domain/app_notification.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -39,9 +40,7 @@ class NotificationsScreen extends ConsumerWidget {
       if (confirmed == true) {
         await repo.deleteAllReadNotifications(userId);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Read notifications deleted.')),
-          );
+          AppSnackBar.show(context, 'Read notifications deleted.');
         }
       }
     }

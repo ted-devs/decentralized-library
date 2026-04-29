@@ -5,6 +5,7 @@ import 'package:decentralized_library/src/features/bookshelf/application/google_
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 class AddBookScreen extends ConsumerStatefulWidget {
   const AddBookScreen({super.key});
@@ -29,9 +30,7 @@ class _AddBookScreenState extends ConsumerState<AddBookScreen> {
       setState(() => _searchResults = results);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Search failed: $e')),
-        );
+        AppSnackBar.show(context, 'Search failed: $e');
       }
     } finally {
       if (mounted) {
@@ -61,16 +60,12 @@ class _AddBookScreenState extends ConsumerState<AddBookScreen> {
       await ref.read(bookshelfRepositoryProvider).addBook(bookToAdd);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Book added to your shelf!')),
-        );
+        AppSnackBar.show(context, 'Book added to your shelf!');
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add book: $e')),
-        );
+        AppSnackBar.show(context, 'Failed to add book: $e');
       }
     }
   }
@@ -200,16 +195,12 @@ class _ManualAddBookScreenState extends ConsumerState<ManualAddBookScreen> {
       await ref.read(bookshelfRepositoryProvider).addBook(book);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Book added to your shelf!')),
-        );
+        AppSnackBar.show(context, 'Book added to your shelf!');
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) {

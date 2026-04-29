@@ -4,6 +4,7 @@ import 'package:decentralized_library/src/features/communities/data/community_re
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/shared/constants/countries.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 class CreateCommunityScreen extends ConsumerStatefulWidget {
   const CreateCommunityScreen({super.key});
@@ -34,9 +35,7 @@ class _CreateCommunityScreenState extends ConsumerState<CreateCommunityScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCountry == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a country')),
-      );
+      AppSnackBar.show(context, 'Please select a country');
       return;
     }
 
@@ -60,15 +59,11 @@ class _CreateCommunityScreenState extends ConsumerState<CreateCommunityScreen> {
       
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Community "${community.name}" created!')),
-        );
+        AppSnackBar.show(context, 'Community "${community.name}" created!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

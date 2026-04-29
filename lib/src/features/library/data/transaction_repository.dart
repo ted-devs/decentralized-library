@@ -87,7 +87,8 @@ class TransactionRepository {
     final activeCount = await _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: borrowerId)
-        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
+        .where('status',
+            whereIn: ['requested', 'approved', 'pickedUp', 'overdue'])
         .get()
         .then((snapshot) => snapshot.docs.length);
     

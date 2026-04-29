@@ -77,12 +77,9 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                         );
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            e.toString().replaceAll('Exception: ', ''),
-                          ),
-                        ),
+                      AppSnackBar.show(
+                        context,
+                        e.toString().replaceAll('Exception: ', ''),
                       );
                     }
                   }
@@ -264,10 +261,9 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                                       onPressed: () {
                                         Clipboard.setData(ClipboardData(
                                             text: community.inviteCode!));
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                              content: Text('Code copied!')),
+                                        AppSnackBar.show(
+                                          context,
+                                          'Code copied!',
                                         );
                                       },
                                       tooltip: 'Copy Code',
@@ -470,17 +466,14 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
           .requestToJoin(user.uid, widget.community);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Join request sent for ${widget.community.name}!'),
-          ),
+        AppSnackBar.show(
+          context,
+          'Join request sent for ${widget.community.name}!',
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to join: $e')));
+        AppSnackBar.show(context, 'Failed to join: $e');
       }
     } finally {
       if (mounted) {
@@ -517,9 +510,7 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
       await ref.read(communityRepositoryProvider).leaveCommunity(membershipId);
       if (context.mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Left community.')));
+        AppSnackBar.show(context, 'Left community.');
       }
     }
   }
@@ -551,15 +542,11 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
         if (context.mounted) {
           // Navigate back twice to get out of Info and Detail screens
           Navigator.of(context).popUntil((route) => route.isFirst);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Community deleted.')),
-          );
+          AppSnackBar.show(context, 'Community deleted.');
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete community: $e')),
-          );
+          AppSnackBar.show(context, 'Failed to delete community: $e');
         }
       }
     }
@@ -606,15 +593,11 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                       );
                       if (context.mounted) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Description updated')),
-                        );
+                        AppSnackBar.show(context, 'Description updated');
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
+                        AppSnackBar.show(context, 'Error: $e');
                         setStateDialog(() => isSaving = false);
                       }
                     }

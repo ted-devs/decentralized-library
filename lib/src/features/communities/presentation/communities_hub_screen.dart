@@ -223,12 +223,9 @@ class CommunitiesHubScreen extends ConsumerWidget {
                         );
                   } catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            e.toString().replaceAll('Exception: ', ''),
-                          ),
-                        ),
+                      AppSnackBar.show(
+                        context,
+                        e.toString().replaceAll('Exception: ', ''),
                       );
                     }
                   }
@@ -344,12 +341,9 @@ class CommunitiesHubScreen extends ConsumerWidget {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        e.toString().replaceAll('Exception: ', ''),
-                      ),
-                    ),
+                  AppSnackBar.show(
+                    context,
+                    e.toString().replaceAll('Exception: ', ''),
                   );
                 }
               }

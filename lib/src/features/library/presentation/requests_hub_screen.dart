@@ -7,6 +7,7 @@ import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 final incomingRequestsProvider = StreamProvider<List<BookTransaction>>((ref) {
   final user = ref.watch(authStateProvider).value;
@@ -147,9 +148,7 @@ class _IncomingRequestsView extends ConsumerWidget {
       if (user != null) {
         await ref.read(transactionRepositoryProvider).deleteMultipleTransactions(items, user.uid);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('History cleared.')),
-          );
+          AppSnackBar.show(context, 'History cleared.');
         }
       }
     }
@@ -223,9 +222,7 @@ class _OutgoingRequestsView extends ConsumerWidget {
       if (user != null) {
         await ref.read(transactionRepositoryProvider).deleteMultipleTransactions(items, user.uid);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('History cleared.')),
-          );
+          AppSnackBar.show(context, 'History cleared.');
         }
       }
     }
@@ -327,9 +324,7 @@ class _TransactionTile extends ConsumerWidget {
         if (user != null) {
           await ref.read(transactionRepositoryProvider).deleteTransaction(transaction.id, user.uid);
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('History item removed.')),
-            );
+            AppSnackBar.show(context, 'History item removed.');
           }
         }
       }

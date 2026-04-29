@@ -4,6 +4,7 @@ import '../../auth/application/auth_service.dart';
 import '../../auth/domain/app_user.dart';
 import '../application/user_settings_service.dart';
 import '../../../shared/constants/countries.dart';
+import '../../../shared/utils/snackbar_utils.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -459,9 +460,7 @@ class SettingsScreen extends ConsumerWidget {
         });
         if (context.mounted) {
           Navigator.pop(context); // Close sheet
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Subscription canceled successfully.')),
-          );
+          AppSnackBar.show(context, 'Subscription canceled successfully.');
         }
       }
     }

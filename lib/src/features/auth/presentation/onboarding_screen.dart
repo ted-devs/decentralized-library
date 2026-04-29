@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../domain/app_user.dart';
 import '../../../shared/constants/countries.dart';
+import '../../../shared/utils/snackbar_utils.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final User firebaseUser;
@@ -36,9 +37,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCountry == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your country')),
-      );
+      AppSnackBar.show(context, 'Please select your country');
       return;
     }
 
@@ -62,9 +61,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       // Upon creating the document, AuthWrapper stream will automatically route to Home.
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving profile: $e')),
-        );
+        AppSnackBar.show(context, 'Error saving profile: $e');
       }
       setState(() => _isLoading = false);
     }

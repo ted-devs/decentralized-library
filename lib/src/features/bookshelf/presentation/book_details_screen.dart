@@ -10,6 +10,7 @@ import 'package:decentralized_library/src/features/library/data/transaction_repo
 import 'package:decentralized_library/src/features/library/application/active_transaction_service.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 import 'package:decentralized_library/src/features/communities/presentation/user_profile_screen.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 class BookDetailsScreen extends ConsumerStatefulWidget {
   final Book book;
@@ -31,7 +32,7 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
       await ref.read(bookshelfRepositoryProvider).updateBookShareability(widget.book.id, value);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -58,11 +59,11 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
       await ref.read(bookshelfRepositoryProvider).removeBook(widget.book.id);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Book removed.')));
+        AppSnackBar.show(context, 'Book removed.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -90,11 +91,11 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
           break;
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated to ${status.name}')));
+        AppSnackBar.show(context, 'Status updated to ${status.name}');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -116,11 +117,11 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Borrow request sent!')));
+        AppSnackBar.show(context, 'Borrow request sent!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        AppSnackBar.show(context, 'Error: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -194,15 +195,11 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
               confirmed,
             );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Request approved!')),
-          );
+          AppSnackBar.show(context, 'Request approved!');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
+          AppSnackBar.show(context, 'Error: $e');
         }
       } finally {
         if (mounted) setState(() => _isLoading = false);
@@ -232,16 +229,12 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
       await ref.read(bookshelfRepositoryProvider).addBook(bookToAdd);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Book added to your shelf!')),
-        );
+        AppSnackBar.show(context, 'Book added to your shelf!');
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add book: $e')),
-        );
+        AppSnackBar.show(context, 'Failed to add book: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

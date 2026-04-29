@@ -6,6 +6,7 @@ import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 class UserProfileScreen extends ConsumerWidget {
   final AppUser user;
@@ -153,9 +154,7 @@ class UserProfileScreen extends ConsumerWidget {
       await launchUrl(mailUri);
     } else {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open email app.')),
-        );
+        AppSnackBar.show(context, 'Could not open email app.');
       }
     }
   }
@@ -198,9 +197,7 @@ class UserProfileScreen extends ConsumerWidget {
       await ref.read(communityRepositoryProvider).leaveCommunity(membership!.id);
       if (context.mounted) {
         Navigator.pop(context); // Close profile screen
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${user.displayName} has been removed.')),
-        );
+        AppSnackBar.show(context, '${user.displayName} has been removed.');
       }
     }
   }

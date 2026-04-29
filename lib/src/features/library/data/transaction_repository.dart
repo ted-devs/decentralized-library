@@ -77,16 +77,21 @@ class TransactionRepository {
     required String ownerId,
     required String communityId,
   }) async {
-    // Check if the user has already borrowed too many books (limited to 3 for now)
+    // Get user tier to check limits
+    final userDoc = await _firestore.collection('users').doc(borrowerId).get();
+    final isAdmin = userDoc.data()?['isAdmin'] ?? false;
+    final isPro = userDoc.data()?['isPro'] ?? false;
+    final maxBooks = isAdmin || isPro ? 10 : 5;
+
     final activeCount = await _firestore
         .collection('transactions')
         .where('borrowerId', isEqualTo: borrowerId)
-        .where('status', whereIn: ['approved', 'pickedUp'])
+        .where('status', whereIn: ['approved', 'pickedUp', 'overdue'])
         .get()
         .then((snapshot) => snapshot.docs.length);
     
-    if (activeCount >= 3) {
-      throw Exception('You have reached the maximum of 3 concurrent borrowed books. Upgrade to Pro for more!');
+    if (activeCount >= maxBooks) {
+      throw Exception('You have reached your limit of $maxBooks concurrent borrowed books. ${maxBooks == 5 ? "Upgrade to Pro for 10 books!" : ""}');
     }
 
     await _firestore.collection('transactions').add({

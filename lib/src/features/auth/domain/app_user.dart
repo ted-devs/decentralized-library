@@ -1,5 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum UserTier {
+  free('Free'),
+  pro('Pro'),
+  admin('Administrator');
+
+  final String label;
+  const UserTier(this.label);
+}
+
 class AppUser {
   final String uid;
   final String email;
@@ -26,6 +35,12 @@ class AppUser {
     this.publicContactInfo = false,
     this.pinnedCommunities = const [],
   });
+
+  UserTier get tier {
+    if (isAdmin) return UserTier.admin;
+    if (isPro) return UserTier.pro;
+    return UserTier.free;
+  }
 
   Map<String, dynamic> toMap() {
     return {

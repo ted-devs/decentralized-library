@@ -33,6 +33,13 @@ class CommunitiesHubScreen extends ConsumerWidget {
             icon: const Icon(Icons.add),
             label: 'Create a new community',
             onPressed: () {
+              if (appUser?.isAdmin != true) {
+                AppSnackBar.show(
+                  context,
+                  'Only Administrators can create new communities.',
+                );
+                return;
+              }
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const CreateCommunityScreen(),
@@ -306,6 +313,23 @@ class CommunitiesHubScreen extends ConsumerWidget {
               try {
                 final userId = ref.read(authStateProvider).value?.uid;
                 if (userId == null) return;
+
+                // Enforce community limit for FREE users
+                final appUser = ref.read(appUserProvider).value;
+                if (appUser?.tier == UserTier.free) {
+                  final memberships = ref.read(userMembershipsProvider(userId)).value ?? [];
+                  final joinedCount = memberships.where((m) => m.status == MembershipStatus.approved).length;
+                  if (joinedCount >= 3) {
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      AppSnackBar.show(
+                        context,
+                        'Free tier is limited to 3 communities. Upgrade to Pro for unlimited access!',
+                      );
+                    }
+                    return;
+                  }
+                }
 
                 final communityName = await ref
                     .read(communityRepositoryProvider)

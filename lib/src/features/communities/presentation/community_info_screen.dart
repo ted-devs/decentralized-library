@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
+import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
 import 'package:decentralized_library/src/features/communities/domain/membership.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 import 'community_detail_screen.dart';
 
 class CommunityInfoScreen extends ConsumerStatefulWidget {
@@ -447,6 +449,20 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
     try {
       final user = ref.read(authStateProvider).value;
       if (user == null) return;
+
+      // Enforce community limit for FREE users
+      final appUser = ref.read(appUserProvider).value;
+      if (appUser?.tier == UserTier.free) {
+        final memberships = ref.read(userMembershipsProvider(user.uid)).value ?? [];
+        final joinedCount = memberships.where((m) => m.status == MembershipStatus.approved).length;
+        if (joinedCount >= 3) {
+          AppSnackBar.show(
+            context,
+            'Free tier is limited to 3 communities. Upgrade to Pro for unlimited access!',
+          );
+          return;
+        }
+      }
 
       setState(() => _isRequesting = true);
       await ref

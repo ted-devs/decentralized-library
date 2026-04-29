@@ -79,10 +79,12 @@ class BookCover extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: theme.colorScheme.outline.withAlpha(50)),
       ),
-      child: Icon(
-        Icons.menu_book_rounded,
-        color: theme.colorScheme.outline,
-        size: width * 0.4,
+      child: Center(
+        child: Icon(
+          Icons.menu_book_rounded,
+          color: theme.colorScheme.outline,
+          size: width.isFinite ? width * 0.4 : 32,
+        ),
       ),
     );
   }

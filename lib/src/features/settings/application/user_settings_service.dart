@@ -47,8 +47,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     await ref.read(userSettingsServiceProvider).setThemeMode(mode);
   }
 
-  Future<void> toggleTheme() async {
-    final next = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+  Future<void> toggleTheme(Brightness currentBrightness) async {
+    // If system mode is active, resolve to the opposite of what's currently shown
+    final next = currentBrightness == Brightness.dark ? ThemeMode.light : ThemeMode.dark;
     await setThemeMode(next);
   }
 }

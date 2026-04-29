@@ -74,7 +74,11 @@ class SettingsScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.phone_outlined, size: 14, color: Colors.grey[600]),
+                        Icon(
+                          Icons.phone_outlined,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           appUser!.phoneNumber,
@@ -112,7 +116,8 @@ class SettingsScreen extends ConsumerWidget {
                       const SizedBox(width: 8),
                       // Membership Badge
                       GestureDetector(
-                        onTap: () => _showTierDetailsSheet(context, ref, appUser),
+                        onTap: () =>
+                            _showTierDetailsSheet(context, ref, appUser),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -120,17 +125,27 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           decoration: BoxDecoration(
                             color: appUser?.isAdmin == true
-                                ? (isDark ? Colors.deepPurple.withAlpha(40) : Colors.deepPurple[50])
+                                ? (isDark
+                                      ? Colors.deepPurple.withAlpha(40)
+                                      : Colors.deepPurple[50])
                                 : appUser?.isPro == true
-                                    ? (isDark ? Colors.amber.withAlpha(40) : Colors.amber[100])
-                                    : (isDark ? Colors.white10 : Colors.grey[200]),
+                                ? (isDark
+                                      ? Colors.amber.withAlpha(40)
+                                      : Colors.amber[100])
+                                : (isDark ? Colors.white10 : Colors.grey[200]),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: appUser?.isAdmin == true
-                                  ? (isDark ? Colors.deepPurple[300]! : Colors.deepPurple[700]!)
+                                  ? (isDark
+                                        ? Colors.deepPurple[300]!
+                                        : Colors.deepPurple[700]!)
                                   : appUser?.isPro == true
-                                      ? (isDark ? Colors.amber[300]! : Colors.amber[700]!)
-                                      : (isDark ? Colors.white30 : Colors.grey[400]!),
+                                  ? (isDark
+                                        ? Colors.amber[300]!
+                                        : Colors.amber[700]!)
+                                  : (isDark
+                                        ? Colors.white30
+                                        : Colors.grey[400]!),
                               width: 1,
                             ),
                           ),
@@ -141,14 +156,20 @@ class SettingsScreen extends ConsumerWidget {
                                 appUser?.isAdmin == true
                                     ? Icons.shield_rounded
                                     : appUser?.isPro == true
-                                        ? Icons.workspace_premium_rounded
-                                        : Icons.person_outline_rounded,
+                                    ? Icons.workspace_premium_rounded
+                                    : Icons.person_outline_rounded,
                                 size: 14,
                                 color: appUser?.isAdmin == true
-                                    ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple[900])
+                                    ? (isDark
+                                          ? Colors.deepPurple[200]
+                                          : Colors.deepPurple[900])
                                     : appUser?.isPro == true
-                                        ? (isDark ? Colors.amber[200] : Colors.amber[900])
-                                        : (isDark ? Colors.white70 : Colors.grey[700]),
+                                    ? (isDark
+                                          ? Colors.amber[200]
+                                          : Colors.amber[900])
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.grey[700]),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -157,10 +178,16 @@ class SettingsScreen extends ConsumerWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: appUser?.isAdmin == true
-                                      ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple[900])
+                                      ? (isDark
+                                            ? Colors.deepPurple[200]
+                                            : Colors.deepPurple[900])
                                       : appUser?.isPro == true
-                                          ? (isDark ? Colors.amber[200] : Colors.amber[900])
-                                          : (isDark ? Colors.white70 : Colors.grey[700]),
+                                      ? (isDark
+                                            ? Colors.amber[200]
+                                            : Colors.amber[900])
+                                      : (isDark
+                                            ? Colors.white70
+                                            : Colors.grey[700]),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -180,17 +207,16 @@ class SettingsScreen extends ConsumerWidget {
             // Sub-Settings
             _SettingsTile(
               leading: Icon(
-                themeMode == ThemeMode.dark
-                    ? Icons.dark_mode
-                    : Icons.light_mode,
+                isDark ? Icons.dark_mode : Icons.light_mode,
                 color: theme.colorScheme.primary,
               ),
-              title: 'Dark Mode',
-              subtitle: 'Current: ${themeMode.name.toUpperCase()}',
+              title: 'Theme',
+              subtitle: isDark ? 'DARK' : 'LIGHT',
               trailing: Switch(
-                value: themeMode == ThemeMode.dark,
-                onChanged: (_) =>
-                    ref.read(themeModeProvider.notifier).toggleTheme(),
+                value: isDark,
+                onChanged: (_) => ref
+                    .read(themeModeProvider.notifier)
+                    .toggleTheme(theme.brightness),
               ),
             ),
             const Divider(height: 1, indent: 56),
@@ -339,9 +365,9 @@ class SettingsScreen extends ConsumerWidget {
             // Header
             Text(
               'Membership Tiers',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -401,7 +427,8 @@ class SettingsScreen extends ConsumerWidget {
                   if (user?.tier != UserTier.free)
                     Center(
                       child: TextButton(
-                        onPressed: () => _cancelSubscription(context, ref, user!),
+                        onPressed: () =>
+                            _cancelSubscription(context, ref, user!),
                         child: Text(
                           'Cancel Subscription',
                           style: TextStyle(color: Colors.red[700]),
@@ -481,10 +508,7 @@ class SettingsScreen extends ConsumerWidget {
             .read(firestoreProvider)
             .collection('users')
             .doc(user.uid)
-            .update({
-          'isPro': false,
-          'isAdmin': false,
-        });
+            .update({'isPro': false, 'isAdmin': false});
         if (context.mounted) {
           Navigator.pop(context); // Close sheet
           AppSnackBar.show(context, 'Subscription canceled successfully.');
@@ -532,8 +556,10 @@ class SettingsScreen extends ConsumerWidget {
               ),
               if (isCurrent)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withAlpha(30),
                     borderRadius: BorderRadius.circular(8),
@@ -550,16 +576,18 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          ...features.map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle_outline, size: 16, color: color),
-                    const SizedBox(width: 8),
-                    Text(f, style: const TextStyle(fontSize: 13)),
-                  ],
-                ),
-              )),
+          ...features.map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 16, color: color),
+                  const SizedBox(width: 8),
+                  Text(f, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ),
+          ),
           if (onAction != null) ...[
             const SizedBox(height: 16),
             SizedBox(

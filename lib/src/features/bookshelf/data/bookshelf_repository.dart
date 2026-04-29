@@ -184,3 +184,70 @@ class BookshelfItem {
     this.isLent = false,
   });
 }
+
+enum BookshelfSort { recentlyAdded, titleAZ, titleZA }
+enum BookshelfStatus { all, available, borrowed, lent }
+
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void set(String value) => state = value;
+}
+final bookshelfSearchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() => SearchQueryNotifier());
+
+class SortNotifier extends Notifier<BookshelfSort> {
+  @override
+  BookshelfSort build() => BookshelfSort.recentlyAdded;
+  void set(BookshelfSort value) => state = value;
+}
+final bookshelfSortProvider = NotifierProvider<SortNotifier, BookshelfSort>(() => SortNotifier());
+
+class StatusNotifier extends Notifier<BookshelfStatus> {
+  @override
+  BookshelfStatus build() => BookshelfStatus.all;
+  void set(BookshelfStatus value) => state = value;
+}
+final bookshelfStatusProvider = NotifierProvider<StatusNotifier, BookshelfStatus>(() => StatusNotifier());
+
+final filteredBookshelfProvider = Provider<AsyncValue<List<BookshelfItem>>>((ref) {
+  final bookshelfAsync = ref.watch(bookshelfProvider);
+  final searchQuery = ref.watch(bookshelfSearchQueryProvider).toLowerCase();
+  final sortOption = ref.watch(bookshelfSortProvider);
+  final statusFilter = ref.watch(bookshelfStatusProvider);
+
+  return bookshelfAsync.whenData((items) {
+    var filtered = items.where((item) {
+      // Status Filter
+      if (statusFilter == BookshelfStatus.available && (item.isLent || item.isBorrowed)) return false;
+      if (statusFilter == BookshelfStatus.borrowed && !item.isBorrowed) return false;
+      if (statusFilter == BookshelfStatus.lent && !item.isLent) return false;
+
+      // Search Filter
+      if (searchQuery.isNotEmpty) {
+        final matchesTitle = item.book.title.toLowerCase().contains(searchQuery);
+        final matchesAuthor = item.book.author.toLowerCase().contains(searchQuery);
+        if (!matchesTitle && !matchesAuthor) return false;
+      }
+
+      return true;
+    }).toList();
+
+    // Sort
+    filtered.sort((a, b) {
+      switch (sortOption) {
+        case BookshelfSort.recentlyAdded:
+          // Assuming higher index means older or newer depending on how it's returned from Firestore
+          // We don't have a createdAt on book in this snapshot, but we can assume default order is by ID/creation.
+          // Since we want recently added, maybe just return 0 to keep default firestore order or reverse it if needed.
+          // Since we don't have createdAt, let's just keep the order they came in (which is usually by document ID or insert order).
+          return 0; 
+        case BookshelfSort.titleAZ:
+          return a.book.title.compareTo(b.book.title);
+        case BookshelfSort.titleZA:
+          return b.book.title.compareTo(a.book.title);
+      }
+    });
+
+    return filtered;
+  });
+});

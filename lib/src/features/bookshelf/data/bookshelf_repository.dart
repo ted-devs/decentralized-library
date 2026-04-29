@@ -187,6 +187,7 @@ class BookshelfItem {
 
 enum BookshelfSort { recentlyAdded, titleAZ, titleZA }
 enum BookshelfStatus { all, available, borrowed, lent }
+enum BookshelfViewMode { list, grid }
 
 class SearchQueryNotifier extends Notifier<String> {
   @override
@@ -208,6 +209,14 @@ class StatusNotifier extends Notifier<BookshelfStatus> {
   void set(BookshelfStatus value) => state = value;
 }
 final bookshelfStatusProvider = NotifierProvider<StatusNotifier, BookshelfStatus>(() => StatusNotifier());
+
+class ViewModeNotifier extends Notifier<BookshelfViewMode> {
+  @override
+  BookshelfViewMode build() => BookshelfViewMode.grid;
+  void toggle() => state = state == BookshelfViewMode.grid ? BookshelfViewMode.list : BookshelfViewMode.grid;
+  void set(BookshelfViewMode mode) => state = mode;
+}
+final bookshelfViewModeProvider = NotifierProvider<ViewModeNotifier, BookshelfViewMode>(() => ViewModeNotifier());
 
 final filteredBookshelfProvider = Provider<AsyncValue<List<BookshelfItem>>>((ref) {
   final bookshelfAsync = ref.watch(bookshelfProvider);

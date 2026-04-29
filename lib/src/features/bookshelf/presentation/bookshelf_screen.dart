@@ -19,6 +19,17 @@ class BookshelfScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Bookshelf'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              ref.watch(bookshelfViewModeProvider) == BookshelfViewMode.grid
+                  ? Icons.view_list_rounded
+                  : Icons.grid_view_rounded,
+            ),
+            onPressed: () => ref.read(bookshelfViewModeProvider.notifier).toggle(),
+            tooltip: 'Toggle view mode',
+          ),
+        ],
       ),
       floatingActionButton: ExpandableFab(
         distance: 60,
@@ -143,6 +154,25 @@ class BookshelfScreen extends ConsumerWidget {
                   );
                 }
 
+                final viewMode = ref.watch(bookshelfViewModeProvider);
+
+                if (viewMode == BookshelfViewMode.grid) {
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 16, 12, 100),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.58,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return _BookGridItem(item: item);
+                    },
+                  );
+                }
+
                 return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                   itemCount: items.length,
@@ -224,6 +254,147 @@ class BookshelfScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BookGridItem extends StatelessWidget {
+  final BookshelfItem item;
+
+  const _BookGridItem({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final book = item.book;
+    final isLentOrNotShared = item.isLent || !book.isShareable;
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BookDetailsScreen(book: book, transaction: item.transaction),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(20),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Opacity(
+                      opacity: isLentOrNotShared ? 0.6 : 1.0,
+                      child: BookCover(
+                        url: book.coverUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        useCache: true,
+                      ),
+                    ),
+                  ),
+                ),
+                // Status Badges
+                if (item.isLent)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _StatusBadge(
+                      icon: Icons.remove_circle_outline,
+                      color: Colors.red,
+                    ),
+                  )
+                else if (item.isBorrowed)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _StatusBadge(
+                      icon: Icons.add_circle_outline,
+                      color: Colors.green,
+                    ),
+                  )
+                else if (!book.isShareable)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _StatusBadge(
+                      icon: Icons.visibility_off_outlined,
+                      color: Colors.grey,
+                    ),
+                  ),
+                if (item.transaction?.isOverdue() == true)
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: _StatusBadge(
+                      icon: Icons.warning_amber_rounded,
+                      color: Colors.orange,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            book.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: isLentOrNotShared ? Colors.grey : null,
+            ),
+          ),
+          Text(
+            book.author,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[600],
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _StatusBadge({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(200),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(30),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Icon(icon, color: color, size: 16),
     );
   }
 }

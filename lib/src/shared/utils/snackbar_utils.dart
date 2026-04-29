@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 class AppSnackBar {
   static void show(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: InkWell(
-          onTap: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+          onTap: () => messenger.hideCurrentSnackBar(),
           child: Row(
             children: [
               Expanded(child: Text(message)),

@@ -43,7 +43,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
           ActionButton(
             icon: const Icon(Icons.group_add),
             label: 'Join by invite code',
-            onPressed: () => AppSnackBar.show(context, 'Coming soon!'),
+            onPressed: () => _showInviteCodeDialog(context, ref),
           ),
           ActionButton(
             icon: const Icon(Icons.search),
@@ -262,6 +262,77 @@ class CommunitiesHubScreen extends ConsumerWidget {
             );
           }
         },
+      ),
+    );
+  }
+
+  void _showInviteCodeDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Join by Invite Code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter the code shared with you by the community administrator.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'e.g. ABC123XY',
+                border: OutlineInputBorder(),
+                counterText: '',
+              ),
+              maxLength: 12,
+              textCapitalization: TextCapitalization.characters,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final code = controller.text.trim();
+              if (code.isEmpty) return;
+
+              try {
+                final userId = ref.read(authStateProvider).value?.uid;
+                if (userId == null) return;
+
+                final communityName = await ref
+                    .read(communityRepositoryProvider)
+                    .joinWithInviteCode(userId, code);
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  AppSnackBar.show(
+                    context,
+                    'Successfully joined $communityName!',
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        e.toString().replaceAll('Exception: ', ''),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Join'),
+          ),
+        ],
       ),
     );
   }

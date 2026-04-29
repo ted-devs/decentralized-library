@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/communities/domain/community.dart';
@@ -220,6 +222,101 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                     dense: true,
                   ),
                 const SizedBox(height: 24),
+
+                // Invite System (Admin Only)
+                if (isAdmin) ...[
+                  Text(
+                    'Invite System',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          if (community.inviteCode != null &&
+                              community.inviteExpiry != null) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Active Code',
+                                        style: TextStyle(
+                                            fontSize: 12, color: Colors.grey)),
+                                    Text(community.inviteCode!,
+                                        style: theme.textTheme.headlineSmall
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 2)),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.copy_rounded),
+                                      onPressed: () {
+                                        Clipboard.setData(ClipboardData(
+                                            text: community.inviteCode!));
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text('Code copied!')),
+                                        );
+                                      },
+                                      tooltip: 'Copy Code',
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.refresh_rounded),
+                                      onPressed: () => ref
+                                          .read(communityRepositoryProvider)
+                                          .generateInviteCode(community.id),
+                                      tooltip: 'Refresh Code',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24),
+                            Row(
+                              children: [
+                                const Icon(Icons.timer_outlined,
+                                    size: 16, color: Colors.grey),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Expires: ${DateFormat('MMM d, yyyy').format(community.inviteExpiry!)}',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ] else
+                            Column(
+                              children: [
+                                const Text(
+                                    'No active invite code. Generate one to allow users to join instantly.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey)),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () => ref
+                                      .read(communityRepositoryProvider)
+                                      .generateInviteCode(community.id),
+                                  icon: const Icon(Icons.add_link_rounded),
+                                  label: const Text('Generate Invite Code'),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
 
                 // Admin Info
                 ListTile(

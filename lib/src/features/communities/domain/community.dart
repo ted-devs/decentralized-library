@@ -9,6 +9,9 @@ class Community {
   final String city;
   final String? organization;
 
+  final String? inviteCode;
+  final DateTime? inviteExpiry;
+
   Community({
     required this.id,
     required this.name,
@@ -19,6 +22,8 @@ class Community {
     required this.city,
     this.rules,
     this.organization,
+    this.inviteCode,
+    this.inviteExpiry,
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +36,8 @@ class Community {
       'country': country,
       'city': city,
       'organization': organization,
+      'inviteCode': inviteCode,
+      'inviteExpiry': inviteExpiry?.toIso8601String(),
     };
   }
 
@@ -45,6 +52,10 @@ class Community {
       country: map['country'] ?? '',
       city: map['city'] ?? '',
       organization: map['organization'],
+      inviteCode: map['inviteCode'],
+      inviteExpiry: map['inviteExpiry'] != null
+          ? DateTime.parse(map['inviteExpiry'])
+          : null,
     );
   }
 }

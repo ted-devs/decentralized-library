@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/community.dart';
@@ -143,6 +144,48 @@ class CommunityRepository {
     await _firestore.collection('communities').doc(communityId).update({
       'description': newDescription,
     });
+  }
+
+  Future<void> generateInviteCode(String communityId) async {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = math.Random();
+    final code = String.fromCharCodes(Iterable.generate(
+        8, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
+
+    await _firestore.collection('communities').doc(communityId).update({
+      'inviteCode': code,
+      'inviteExpiry':
+          DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+    });
+  }
+
+  Future<String> joinWithInviteCode(String userId, String inviteCode) async {
+    final query = await _firestore
+        .collection('communities')
+        .where('inviteCode', isEqualTo: inviteCode.trim().toUpperCase())
+        .get();
+
+    if (query.docs.isEmpty) {
+      throw Exception('Invalid invite code.');
+    }
+
+    final doc = query.docs.first;
+    final community = Community.fromMap(doc.data(), doc.id);
+
+    if (community.inviteExpiry == null ||
+        community.inviteExpiry!.isBefore(DateTime.now())) {
+      throw Exception('This invite code has expired.');
+    }
+
+    final membershipId = '${userId}_${community.id}';
+    await _firestore.collection('memberships').doc(membershipId).set({
+      'communityId': community.id,
+      'userId': userId,
+      'status': MembershipStatus.approved.name,
+      'joinedAt': FieldValue.serverTimestamp(),
+    });
+
+    return community.name;
   }
 
   Future<void> togglePinCommunity(String userId, String communityId, bool pin) async {

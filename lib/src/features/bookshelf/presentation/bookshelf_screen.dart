@@ -126,7 +126,7 @@ class BookshelfScreen extends ConsumerWidget {
                     padding: const EdgeInsets.fromLTRB(12, 16, 12, 100),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: gridSize == BookshelfGridSize.small ? 4 : 3,
-                      childAspectRatio: gridSize == BookshelfGridSize.small ? 0.52 : 0.58,
+                      childAspectRatio: 0.65,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 16,
                     ),
@@ -419,96 +419,124 @@ class _BookGridItem extends ConsumerWidget {
         );
       },
       borderRadius: BorderRadius.circular(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(20),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Opacity(
-                      opacity: isLentOrNotShared ? 0.6 : 1.0,
-                      child: BookCover(
-                        url: book.coverUrl,
-                        width: double.infinity,
-                        height: double.infinity,
-                        useCache: true,
-                      ),
-                    ),
-                  ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(20),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
-                // Status Badges
-                if (item.isLent)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: _StatusBadge(
-                      icon: Icons.remove_circle_outline,
-                      color: Colors.red,
-                    ),
-                  )
-                else if (item.isBorrowed)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: _StatusBadge(
-                      icon: Icons.add_circle_outline,
-                      color: Colors.green,
-                    ),
-                  )
-                else if (!book.isShareable)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: _StatusBadge(
-                      icon: Icons.visibility_off_outlined,
-                      color: Colors.grey,
-                    ),
-                  ),
-                if (item.transaction?.isOverdue() == true)
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: _StatusBadge(
-                      icon: Icons.warning_amber_rounded,
-                      color: Colors.orange,
-                    ),
-                  ),
               ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            book.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: isSmall ? 11 : 12,
-              color: isLentOrNotShared ? Colors.grey : null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Opacity(
+                opacity: isLentOrNotShared ? 0.6 : 1.0,
+                child: BookCover(
+                  url: book.coverUrl,
+                  width: double.infinity,
+                  height: double.infinity,
+                  useCache: true,
+                ),
+              ),
             ),
           ),
-          Text(
-            book.author,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[600],
-              fontSize: isSmall ? 9 : 10,
+          // Gradient and Text Overlay
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(8, 32, 8, 12),
+              decoration: BoxDecoration(
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(12)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withAlpha(180),
+                    Colors.black.withAlpha(220),
+                  ],
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    book.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: isSmall ? 11 : 12,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withAlpha(100),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    book.author,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(200),
+                      fontSize: isSmall ? 9 : 10,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+          // Status Badges (Top)
+          if (item.isLent)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _StatusBadge(
+                icon: Icons.remove_circle_outline,
+                color: Colors.red,
+              ),
+            )
+          else if (item.isBorrowed)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _StatusBadge(
+                icon: Icons.add_circle_outline,
+                color: Colors.green,
+              ),
+            )
+          else if (!book.isShareable)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _StatusBadge(
+                icon: Icons.visibility_off_outlined,
+                color: Colors.grey,
+              ),
+            ),
+          // Overdue Badge (Top Left)
+          if (item.transaction?.isOverdue() == true)
+            Positioned(
+              top: 8,
+              left: 8,
+              child: _StatusBadge(
+                icon: Icons.warning_amber_rounded,
+                color: Colors.orange,
+              ),
+            ),
         ],
       ),
     );

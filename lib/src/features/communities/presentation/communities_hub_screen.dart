@@ -38,7 +38,9 @@ class CommunitiesHubScreen extends ConsumerWidget {
       body: userMembershipsAsync.when(
         data: (memberships) {
           return allCommunitiesAsync.when(
-            data: (allCommunities) {
+            data: (unsortedCommunities) {
+              final allCommunities = List<Community>.from(unsortedCommunities)
+                ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
               final membershipMap = {for (var m in memberships) m.communityId: m};
               final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
               final joinedCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.approved && c.adminId != user?.uid).toList();

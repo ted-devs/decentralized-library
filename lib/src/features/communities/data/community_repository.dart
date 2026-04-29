@@ -139,6 +139,12 @@ class CommunityRepository {
     await batch.commit();
   }
 
+  Future<void> updateCommunityDescription(String communityId, String newDescription) async {
+    await _firestore.collection('communities').doc(communityId).update({
+      'description': newDescription,
+    });
+  }
+
   Future<void> togglePinCommunity(String userId, String communityId, bool pin) async {
     final userRef = _firestore.collection('users').doc(userId);
     final userDoc = await userRef.get();

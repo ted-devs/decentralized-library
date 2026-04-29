@@ -20,15 +20,21 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final allCommunitiesAsync = ref.watch(allCommunitiesProvider);
+    final community = allCommunitiesAsync.value?.firstWhere(
+      (c) => c.id == widget.community.id,
+      orElse: () => widget.community,
+    ) ?? widget.community;
+
     final user = ref.watch(authStateProvider).value;
-    final isAdmin = widget.community.adminId == user?.uid;
+    final isAdmin = community.adminId == user?.uid;
     final membershipsAsync = user != null
         ? ref.watch(userMembershipsProvider(user.uid))
         : const AsyncValue<List<Membership>>.loading();
     final membersAsync = ref.watch(
-      communityMembersProvider(widget.community.id),
+      communityMembersProvider(community.id),
     );
-    final adminProfileAsync = ref.watch(userProvider(widget.community.adminId));
+    final adminProfileAsync = ref.watch(userProvider(community.adminId));
 
     final theme = Theme.of(context);
 
@@ -43,13 +49,13 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
 
               // Only show pin button if they are an approved member or admin
               final memberships = ref.watch(userMembershipsProvider(appUser.uid)).value ?? [];
-              final isApproved = appUser.uid == widget.community.adminId || 
-                                memberships.any((m) => m.communityId == widget.community.id && m.status == MembershipStatus.approved);
+              final isApproved = appUser.uid == community.adminId || 
+                                memberships.any((m) => m.communityId == community.id && m.status == MembershipStatus.approved);
               
               if (!isApproved) return const SizedBox.shrink();
 
               final isPinned = appUser.pinnedCommunities.contains(
-                widget.community.id,
+                community.id,
               );
               return IconButton(
                 icon: Icon(
@@ -62,7 +68,7 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                         .read(communityRepositoryProvider)
                         .togglePinCommunity(
                           appUser.uid,
-                          widget.community.id,
+                          community.id,
                           !isPinned,
                         );
                   } catch (e) {
@@ -85,7 +91,7 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
       body: membershipsAsync.when(
         data: (memberships) {
           final communityMemberships = memberships
-              .where((m) => m.communityId == widget.community.id)
+              .where((m) => m.communityId == community.id)
               .toList();
 
           final isApproved =
@@ -118,7 +124,7 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  widget.community.name,
+                  community.name,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -145,7 +151,7 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                       context,
                       Icons.menu_book_rounded,
                       ref
-                          .watch(communityLibraryProvider(widget.community.id))
+                          .watch(communityLibraryProvider(community.id))
                           .when(
                             data: (books) =>
                                 '${books.length} Book${books.length == 1 ? '' : 's'}',
@@ -158,15 +164,26 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                 const SizedBox(height: 24),
 
                 // Description
-                Text(
-                  'About',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'About',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (isAdmin)
+                      IconButton(
+                        icon: const Icon(Icons.edit, size: 20),
+                        onPressed: () => _showEditDescriptionDialog(context, community),
+                        tooltip: 'Edit Description',
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.community.description,
+                  community.description,
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
@@ -182,14 +199,14 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.location_on_outlined),
-                  title: Text('${widget.community.city}, ${widget.community.country}'),
+                  title: Text('${community.city}, ${community.country}'),
                   dense: true,
                 ),
-                if (widget.community.organization != null && widget.community.organization!.isNotEmpty)
+                if (community.organization != null && community.organization!.isNotEmpty)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.business_outlined),
-                    title: Text(widget.community.organization!),
+                    title: Text(community.organization!),
                     dense: true,
                   ),
                 const SizedBox(height: 24),
@@ -415,5 +432,71 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
         }
       }
     }
+  }
+
+  Future<void> _showEditDescriptionDialog(BuildContext context, Community community) async {
+    final controller = TextEditingController(text: community.description);
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Edit Description'),
+              content: Form(
+                key: formKey,
+                child: TextFormField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 4,
+                  validator: (v) => v == null || v.trim().isEmpty ? 'Cannot be empty' : null,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSaving ? null : () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSaving ? null : () async {
+                    if (!formKey.currentState!.validate()) return;
+                    setStateDialog(() => isSaving = true);
+                    try {
+                      await ref.read(communityRepositoryProvider).updateCommunityDescription(
+                        community.id,
+                        controller.text.trim(),
+                      );
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Description updated')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                        setStateDialog(() => isSaving = false);
+                      }
+                    }
+                  },
+                  child: isSaving 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) 
+                    : const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

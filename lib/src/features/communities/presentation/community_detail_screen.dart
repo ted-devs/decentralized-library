@@ -107,76 +107,150 @@ class _CommunityLibraryView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final libraryAsync = ref.watch(communityLibraryProvider(community.id));
+    final libraryAsync = ref.watch(filteredCommunityLibraryProvider(community.id));
+    final searchQuery = ref.watch(communityLibrarySearchQueryProvider);
+    final sortOption = ref.watch(communityLibrarySortProvider);
+    final statusFilter = ref.watch(communityLibraryStatusProvider);
 
-    return libraryAsync.when(
-      data: (books) {
-        if (books.isEmpty) return const Center(child: Text('No books shared in this community yet.'));
+    return Column(
+      children: [
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search title or author...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => ref.read(communityLibrarySearchQueryProvider.notifier).set(''),
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            ),
+            onChanged: (value) => ref.read(communityLibrarySearchQueryProvider.notifier).set(value),
+          ),
+        ),
         
-        return ListView.builder(
-          itemCount: books.length,
-          itemBuilder: (context, index) {
-            return _CommunityLibraryTile(book: books[index]);
-          },
-        );
-      },
-      loading: () => const _CommunityLibrarySkeleton(),
-      error: (e, st) => Center(child: Text('Error: $e')),
+        // Filters and Sorts
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            children: [
+              const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              DropdownButton<CommunityLibraryStatus>(
+                value: statusFilter,
+                underline: const SizedBox(),
+                onChanged: (CommunityLibraryStatus? newValue) {
+                  if (newValue != null) {
+                    ref.read(communityLibraryStatusProvider.notifier).set(newValue);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(value: CommunityLibraryStatus.all, child: Text('All')),
+                  DropdownMenuItem(value: CommunityLibraryStatus.available, child: Text('Available')),
+                  DropdownMenuItem(value: CommunityLibraryStatus.unavailable, child: Text('Unavailable')),
+                ],
+              ),
+              const SizedBox(width: 16),
+              const Text('Sort: ', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              DropdownButton<CommunityLibrarySort>(
+                value: sortOption,
+                underline: const SizedBox(),
+                onChanged: (CommunityLibrarySort? newValue) {
+                  if (newValue != null) {
+                    ref.read(communityLibrarySortProvider.notifier).set(newValue);
+                  }
+                },
+                items: const [
+                  DropdownMenuItem(value: CommunityLibrarySort.recentlyAdded, child: Text('Recently Added')),
+                  DropdownMenuItem(value: CommunityLibrarySort.titleAZ, child: Text('Title A-Z')),
+                  DropdownMenuItem(value: CommunityLibrarySort.titleZA, child: Text('Title Z-A')),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Divider(),
+
+        // Book List
+        Expanded(
+          child: libraryAsync.when(
+            data: (items) {
+              if (items.isEmpty) {
+                return Center(
+                  child: Text(searchQuery.isNotEmpty || statusFilter != CommunityLibraryStatus.all
+                      ? 'No books match your filters.'
+                      : 'No books shared in this community yet.'),
+                );
+              }
+              
+              return ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  return _CommunityLibraryTile(item: items[index]);
+                },
+              );
+            },
+            loading: () => const _CommunityLibrarySkeleton(),
+            error: (e, st) => Center(child: Text('Error: $e')),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _CommunityLibraryTile extends ConsumerWidget {
-  final Book book;
-  const _CommunityLibraryTile({required this.book});
+class _CommunityLibraryTile extends StatelessWidget {
+  final CommunityLibraryItem item;
+  const _CommunityLibraryTile({required this.item});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final confirmedTxAsync = ref.watch(confirmedTransactionForBookProvider(book.id));
-
-    return confirmedTxAsync.when(
-      data: (tx) {
-        final isUnavailable = tx != null;
-        
-        return Opacity(
-          opacity: isUnavailable ? 0.6 : 1.0,
-          child: ListTile(
-            leading: BookCover(
-              url: book.coverUrl,
-              width: 40,
-              height: 60,
-              useCache: true,
-            ),
-            title: Text(
-              book.title,
-              style: TextStyle(
-                fontWeight: isUnavailable ? FontWeight.normal : FontWeight.bold,
-                color: isUnavailable ? Colors.grey : null,
-              ),
-            ),
-            subtitle: Text(book.author),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isUnavailable)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: Icon(Icons.remove_circle_outline, color: Colors.grey, size: 20),
-                  ),
-                const Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
-            ),
+  Widget build(BuildContext context) {
+    final book = item.book;
+    final isUnavailable = item.isUnavailable;
+    
+    return Opacity(
+      opacity: isUnavailable ? 0.6 : 1.0,
+      child: ListTile(
+        leading: BookCover(
+          url: book.coverUrl,
+          width: 40,
+          height: 60,
+          useCache: true,
+        ),
+        title: Text(
+          book.title,
+          style: TextStyle(
+            fontWeight: isUnavailable ? FontWeight.normal : FontWeight.bold,
+            color: isUnavailable ? Colors.grey : null,
           ),
-        );
-      },
-      loading: () => const ListTile(
-        leading: SizedBox(width: 40, height: 60),
-        title: Text('...'),
+        ),
+        subtitle: Text(book.author),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isUnavailable)
+              const Padding(
+                padding: EdgeInsets.only(right: 8.0),
+                child: Icon(Icons.remove_circle_outline, color: Colors.grey, size: 20),
+              ),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
+        ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

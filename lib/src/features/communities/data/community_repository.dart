@@ -6,6 +6,7 @@ import 'package:decentralized_library/src/features/auth/application/auth_service
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
 import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/notifications/domain/app_notification.dart';
+import 'package:decentralized_library/src/features/library/application/active_transaction_service.dart';
 
 
 final communityRepositoryProvider = Provider((ref) => CommunityRepository(FirebaseFirestore.instance));
@@ -219,3 +220,77 @@ final communityLibraryProvider = StreamProvider.family<List<Book>, String>((ref,
     error: (e, st) => Stream.error(e),
   );
 });
+
+class CommunityLibraryItem {
+  final Book book;
+  final bool isUnavailable;
+
+  CommunityLibraryItem({
+    required this.book,
+    this.isUnavailable = false,
+  });
+}
+
+enum CommunityLibrarySort { recentlyAdded, titleAZ, titleZA }
+enum CommunityLibraryStatus { all, available, unavailable }
+
+class CommunityLibrarySearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void set(String value) => state = value;
+}
+final communityLibrarySearchQueryProvider = NotifierProvider<CommunityLibrarySearchQueryNotifier, String>(() => CommunityLibrarySearchQueryNotifier());
+
+class CommunityLibrarySortNotifier extends Notifier<CommunityLibrarySort> {
+  @override
+  CommunityLibrarySort build() => CommunityLibrarySort.recentlyAdded;
+  void set(CommunityLibrarySort value) => state = value;
+}
+final communityLibrarySortProvider = NotifierProvider<CommunityLibrarySortNotifier, CommunityLibrarySort>(() => CommunityLibrarySortNotifier());
+
+class CommunityLibraryStatusNotifier extends Notifier<CommunityLibraryStatus> {
+  @override
+  CommunityLibraryStatus build() => CommunityLibraryStatus.all;
+  void set(CommunityLibraryStatus value) => state = value;
+}
+final communityLibraryStatusProvider = NotifierProvider<CommunityLibraryStatusNotifier, CommunityLibraryStatus>(() => CommunityLibraryStatusNotifier());
+
+final filteredCommunityLibraryProvider = Provider.family<AsyncValue<List<CommunityLibraryItem>>, String>((ref, communityId) {
+  final libraryAsync = ref.watch(communityLibraryProvider(communityId));
+  final searchQuery = ref.watch(communityLibrarySearchQueryProvider).toLowerCase();
+  final sortOption = ref.watch(communityLibrarySortProvider);
+  final statusFilter = ref.watch(communityLibraryStatusProvider);
+
+  return libraryAsync.whenData((books) {
+    List<CommunityLibraryItem> items = [];
+    
+    for (var book in books) {
+      final txAsync = ref.watch(confirmedTransactionForBookProvider(book.id));
+      final isUnavailable = txAsync.value != null;
+      items.add(CommunityLibraryItem(book: book, isUnavailable: isUnavailable));
+    }
+
+    var filtered = items.where((item) {
+      if (statusFilter == CommunityLibraryStatus.available && item.isUnavailable) return false;
+      if (statusFilter == CommunityLibraryStatus.unavailable && !item.isUnavailable) return false;
+
+      if (searchQuery.isNotEmpty) {
+        final matchesTitle = item.book.title.toLowerCase().contains(searchQuery);
+        final matchesAuthor = item.book.author.toLowerCase().contains(searchQuery);
+        if (!matchesTitle && !matchesAuthor) return false;
+      }
+      return true;
+    }).toList();
+
+    filtered.sort((a, b) {
+      switch (sortOption) {
+        case CommunityLibrarySort.recentlyAdded: return 0;
+        case CommunityLibrarySort.titleAZ: return a.book.title.compareTo(b.book.title);
+        case CommunityLibrarySort.titleZA: return b.book.title.compareTo(a.book.title);
+      }
+    });
+
+    return filtered;
+  });
+});
+

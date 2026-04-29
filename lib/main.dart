@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'src/features/auth/presentation/auth_wrapper.dart';
 import 'src/features/settings/application/user_settings_service.dart';
 
@@ -31,12 +32,14 @@ class DecentralizedLibraryApp extends ConsumerWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        textTheme: GoogleFonts.outfitTextTheme(),
       ),
       darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.deepPurple,
           brightness: Brightness.dark,
         ),
+        textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
       ),
       themeMode: themeMode,
       themeAnimationDuration: Duration.zero,

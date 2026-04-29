@@ -76,6 +76,7 @@ class TransactionRepository {
     required String bookId,
     required String ownerId,
     required String communityId,
+    required int durationWeeks,
   }) async {
     // Get user tier to check limits
     final userDoc = await _firestore.collection('users').doc(borrowerId).get();
@@ -100,7 +101,7 @@ class TransactionRepository {
       'ownerId': ownerId,
       'communityId': communityId,
       'status': TransactionStatus.requested.name,
-      'durationWeeks': 4,
+      'durationWeeks': durationWeeks,
       'requestedDate': FieldValue.serverTimestamp(),
       'isDeletedByOwner': false,
       'isDeletedByBorrower': false,

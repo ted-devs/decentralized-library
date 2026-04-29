@@ -22,6 +22,7 @@ class BookDetailsScreen extends ConsumerStatefulWidget {
 
 class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
   bool _isLoading = false;
+  int _selectedDuration = 2; // Default to 2 weeks
   bool _isDescriptionExpanded = false;
 
   Future<void> _toggleShareability(bool value) async {
@@ -111,6 +112,7 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
         bookId: widget.book.id,
         ownerId: widget.book.ownerId,
         communityId: 'default',
+        durationWeeks: _selectedDuration,
       );
 
       if (mounted) {
@@ -122,6 +124,89 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showApprovalDialog() async {
+    if (widget.transaction == null) return;
+    int duration = widget.transaction!.durationWeeks;
+    final confirmed = await showDialog<int>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Approve Request'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('The borrower requested to keep this book for:'),
+              const SizedBox(height: 4),
+              Text(
+                '${widget.transaction!.durationWeeks} ${widget.transaction!.durationWeeks == 1 ? 'week' : 'weeks'}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'You can reduce this duration if needed:',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [1, 2, 3, 4]
+                    .where((w) => w <= widget.transaction!.durationWeeks)
+                    .map((w) {
+                  return ChoiceChip(
+                    label: Text('$w ${w == 1 ? 'wk' : 'wks'}'),
+                    selected: duration == w,
+                    onSelected: (selected) {
+                      if (selected) setDialogState(() => duration = w);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, duration),
+              child: const Text('Approve'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != null) {
+      setState(() => _isLoading = true);
+      try {
+        await ref.read(transactionRepositoryProvider).approveRequest(
+              widget.transaction!.id,
+              confirmed,
+            );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Request approved!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -429,8 +514,7 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                                   child: ElevatedButton(
                                       onPressed: _isLoading
                                           ? null
-                                          : () => _updateStatus(
-                                              TransactionStatus.approved),
+                                          : _showApprovalDialog,
                                       child: const Text('Approve'))),
                               const SizedBox(width: 8),
                               Expanded(
@@ -559,16 +643,60 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                                   }
 
                                   // 3. Otherwise, I can request it.
-                                  return SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton.icon(
-                                      onPressed: _isLoading ? null : _requestBorrow,
-                                      icon: const Icon(Icons.send_rounded),
-                                      label: _isLoading
-                                          ? const CircularProgressIndicator()
-                                          : const Text('Request to Borrow'),
-                                    ),
+                                  return Column(
+                                    children: [
+                                      const Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          'Borrowing Duration',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [1, 2, 3, 4].map((weeks) {
+                                          final isSelected =
+                                              _selectedDuration == weeks;
+                                          return ChoiceChip(
+                                            label: Text(
+                                                '$weeks ${weeks == 1 ? 'wk' : 'wks'}'),
+                                            selected: isSelected,
+                                            selectedColor: theme
+                                                .colorScheme.primaryContainer,
+                                            onSelected: (selected) {
+                                              if (selected) {
+                                                setState(() =>
+                                                    _selectedDuration = weeks);
+                                              }
+                                            },
+                                          );
+                                        }).toList(),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 50,
+                                        child: ElevatedButton.icon(
+                                          onPressed:
+                                              _isLoading ? null : _requestBorrow,
+                                          icon: const Icon(Icons.send_rounded),
+                                          label: _isLoading
+                                              ? const SizedBox(
+                                                  height: 20,
+                                                  width: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 2))
+                                              : const Text('Request to Borrow'),
+                                        ),
+                                      ),
+                                    ],
                                   );
                                 },
                                 loading: () => const SizedBox(

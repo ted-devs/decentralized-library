@@ -4,6 +4,7 @@ import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repo
 import 'package:decentralized_library/src/features/bookshelf/presentation/add_book_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
+import 'package:decentralized_library/src/shared/widgets/expandable_fab.dart';
 
 class BookshelfScreen extends ConsumerWidget {
   const BookshelfScreen({super.key});
@@ -18,12 +19,25 @@ class BookshelfScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Bookshelf'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded),
+      ),
+      floatingActionButton: ExpandableFab(
+        distance: 60,
+        children: [
+          ActionButton(
+            icon: const Icon(Icons.search),
+            label: 'Search & Add',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AddBookScreen()),
+              );
+            },
+          ),
+          ActionButton(
+            icon: const Icon(Icons.edit),
+            label: 'Add manually',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ManualAddBookScreen()),
               );
             },
           ),

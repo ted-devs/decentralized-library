@@ -8,6 +8,8 @@ import 'package:decentralized_library/src/features/auth/domain/app_user.dart';
 import 'community_detail_screen.dart';
 import 'community_info_screen.dart';
 import 'create_community_screen.dart';
+import 'discover_communities_screen.dart';
+import 'package:decentralized_library/src/shared/widgets/expandable_fab.dart';
 
 class CommunitiesHubScreen extends ConsumerWidget {
   const CommunitiesHubScreen({super.key});
@@ -24,12 +26,38 @@ class CommunitiesHubScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Communities'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded),
+      ),
+      floatingActionButton: ExpandableFab(
+        distance: 60.0,
+        children: [
+          ActionButton(
+            icon: const Icon(Icons.add),
+            label: 'Create a new community',
+            color: const Color(0xFF81C784), // Soft Mint Green (matched with FAB)
+            foregroundColor: Colors.black87,
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CreateCommunityScreen()),
+              );
+            },
+          ),
+          ActionButton(
+            icon: const Icon(Icons.group_add),
+            label: 'Join by invite code',
+            color: const Color(0xFF90CAF9), // Soft Pastel Blue
+            foregroundColor: Colors.black87,
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Coming soon!')),
+              );
+            },
+          ),
+          ActionButton(
+            icon: const Icon(Icons.search),
+            label: 'Discover more',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DiscoverCommunitiesScreen()),
               );
             },
           ),
@@ -45,7 +73,6 @@ class CommunitiesHubScreen extends ConsumerWidget {
               final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
               final joinedCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.approved && c.adminId != user?.uid).toList();
               final pendingCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.pending).toList();
-              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id) && c.adminId != user?.uid && c.isPublic).toList();
 
               return ListView(
                 padding: const EdgeInsets.all(16),
@@ -67,11 +94,6 @@ class CommunitiesHubScreen extends ConsumerWidget {
                     const SizedBox(height: 8),
                     ...pendingCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
                     const SizedBox(height: 24),
-                  ],
-                  if (otherCommunities.isNotEmpty) ...[
-                    _buildSectionHeader('Discover More'),
-                    const SizedBox(height: 8),
-                    ...otherCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
                   ],
                 ],
               );

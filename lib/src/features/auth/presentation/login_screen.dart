@@ -78,8 +78,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
-                ? [const Color(0xFF1F1C2C), const Color(0xFF928DAB)]
-                : [const Color(0xFF6dd5ed), const Color(0xFF2193b0)],
+                ? [const Color(0xFF141E30), const Color(0xFF243B55)]
+                : [const Color(0xFF6366F1), const Color(0xFF4338CA)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -224,14 +224,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           
                           // Google Sign In
-                          OutlinedButton.icon(
-                            onPressed: _isLoading ? null : _handleGoogleSignIn,
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(top: 8),
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _handleGoogleSignIn,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                elevation: 1,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: Colors.grey.shade300),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.network(
+                                    'https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png',
+                                    height: 24,
+                                    errorBuilder: (context, error, stackTrace) => 
+                                      const Icon(Icons.g_mobiledata, color: Colors.blue, size: 24),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Sign in with Google',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            icon: const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
-                            label: const Text('Continue with Google', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),

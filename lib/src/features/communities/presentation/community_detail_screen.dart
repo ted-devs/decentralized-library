@@ -8,6 +8,7 @@ import 'community_info_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/book_details_screen.dart';
 import 'package:decentralized_library/src/features/bookshelf/presentation/widgets/book_cover.dart';
 import 'package:decentralized_library/src/features/bookshelf/domain/book.dart';
+import 'package:decentralized_library/src/features/bookshelf/data/bookshelf_repository.dart';
 import 'package:decentralized_library/src/features/library/application/active_transaction_service.dart';
 import 'user_profile_screen.dart';
 import 'package:shimmer/shimmer.dart';
@@ -30,7 +31,9 @@ class CommunityDetailScreen extends ConsumerWidget {
             icon: const Icon(Icons.info_outline_rounded),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+                MaterialPageRoute(
+                  builder: (_) => CommunityInfoScreen(community: community),
+                ),
               );
             },
           ),
@@ -47,11 +50,18 @@ class CommunityDetailScreen extends ConsumerWidget {
 
           return membershipsAsync.when(
             data: (memberships) {
-              final membership = memberships.where((m) => m.communityId == community.id).firstOrNull;
-              final isApproved = isAdmin || membership?.status == MembershipStatus.approved;
+              final membership = memberships
+                  .where((m) => m.communityId == community.id)
+                  .firstOrNull;
+              final isApproved =
+                  isAdmin || membership?.status == MembershipStatus.approved;
 
               if (!isApproved) {
-                return const Center(child: Text('You must be an approved member to view this community.'));
+                return const Center(
+                  child: Text(
+                    'You must be an approved member to view this community.',
+                  ),
+                );
               }
 
               if (isAdmin) {
@@ -68,7 +78,16 @@ class CommunityDetailScreen extends ConsumerWidget {
                             const Tab(text: 'Members'),
                             Tab(
                               child: Badge(
-                                isLabelVisible: ref.watch(communityPendingRequestsProvider(community.id)).value?.isNotEmpty ?? false,
+                                isLabelVisible:
+                                    ref
+                                        .watch(
+                                          communityPendingRequestsProvider(
+                                            community.id,
+                                          ),
+                                        )
+                                        .value
+                                        ?.isNotEmpty ??
+                                    false,
                                 child: const Text('Requests'),
                               ),
                             ),
@@ -107,76 +126,49 @@ class _CommunityLibraryView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final libraryAsync = ref.watch(filteredCommunityLibraryProvider(community.id));
+    final libraryAsync = ref.watch(
+      filteredCommunityLibraryProvider(community.id),
+    );
     final searchQuery = ref.watch(communityLibrarySearchQueryProvider);
     final sortOption = ref.watch(communityLibrarySortProvider);
     final statusFilter = ref.watch(communityLibraryStatusProvider);
 
     return Column(
       children: [
-        // Search Bar
+        // Search and Filters
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Search title or author...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () => ref.read(communityLibrarySearchQueryProvider.notifier).set(''),
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-            ),
-            onChanged: (value) => ref.read(communityLibrarySearchQueryProvider.notifier).set(value),
-          ),
-        ),
-        
-        // Filters and Sorts
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              DropdownButton<CommunityLibraryStatus>(
-                value: statusFilter,
-                underline: const SizedBox(),
-                onChanged: (CommunityLibraryStatus? newValue) {
-                  if (newValue != null) {
-                    ref.read(communityLibraryStatusProvider.notifier).set(newValue);
-                  }
-                },
-                items: const [
-                  DropdownMenuItem(value: CommunityLibraryStatus.all, child: Text('All')),
-                  DropdownMenuItem(value: CommunityLibraryStatus.available, child: Text('Available')),
-                  DropdownMenuItem(value: CommunityLibraryStatus.unavailable, child: Text('Unavailable')),
-                ],
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search title or author...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => ref
+                                .read(
+                                  communityLibrarySearchQueryProvider.notifier,
+                                )
+                                .set(''),
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  ),
+                  onChanged: (value) => ref
+                      .read(communityLibrarySearchQueryProvider.notifier)
+                      .set(value),
+                ),
               ),
-              const SizedBox(width: 16),
-              const Text('Sort: ', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(width: 8),
-              DropdownButton<CommunityLibrarySort>(
-                value: sortOption,
-                underline: const SizedBox(),
-                onChanged: (CommunityLibrarySort? newValue) {
-                  if (newValue != null) {
-                    ref.read(communityLibrarySortProvider.notifier).set(newValue);
-                  }
-                },
-                items: const [
-                  DropdownMenuItem(value: CommunityLibrarySort.recentlyAdded, child: Text('Recently Added')),
-                  DropdownMenuItem(value: CommunityLibrarySort.titleAZ, child: Text('Title A-Z')),
-                  DropdownMenuItem(value: CommunityLibrarySort.titleZA, child: Text('Title Z-A')),
-                ],
-              ),
+              _FilterButton(communityId: community.id),
             ],
           ),
         ),
@@ -188,13 +180,35 @@ class _CommunityLibraryView extends ConsumerWidget {
             data: (items) {
               if (items.isEmpty) {
                 return Center(
-                  child: Text(searchQuery.isNotEmpty || statusFilter != CommunityLibraryStatus.all
-                      ? 'No books match your filters.'
-                      : 'No books shared in this community yet.'),
+                  child: Text(
+                    searchQuery.isNotEmpty ||
+                            statusFilter != CommunityLibraryStatus.all
+                        ? 'No books match your filters.'
+                        : 'No books shared in this community yet.',
+                  ),
                 );
               }
-              
+
+              final viewMode = ref.watch(communityLibraryViewModeProvider);
+
+              if (viewMode == BookshelfViewMode.grid) {
+                return GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 100),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.58,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    return _CommunityBookGridItem(item: items[index]);
+                  },
+                );
+              }
+
               return ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   return _CommunityLibraryTile(item: items[index]);
@@ -218,7 +232,7 @@ class _CommunityLibraryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final book = item.book;
     final isUnavailable = item.isUnavailable;
-    
+
     return Opacity(
       opacity: isUnavailable ? 0.6 : 1.0,
       child: ListTile(
@@ -242,7 +256,11 @@ class _CommunityLibraryTile extends StatelessWidget {
             if (isUnavailable)
               const Padding(
                 padding: EdgeInsets.only(right: 8.0),
-                child: Icon(Icons.remove_circle_outline, color: Colors.grey, size: 20),
+                child: Icon(
+                  Icons.remove_circle_outline,
+                  color: Colors.grey,
+                  size: 20,
+                ),
               ),
             const Icon(Icons.chevron_right),
           ],
@@ -298,8 +316,10 @@ class _CommunityMembersView extends ConsumerWidget {
 
     return membersAsync.when(
       data: (members) {
-        final regularMembers = members.where((m) => m.userId != community.adminId).toList();
-        
+        final regularMembers = members
+            .where((m) => m.userId != community.adminId)
+            .toList();
+
         if (regularMembers.isEmpty) {
           return const Center(child: Text('No members yet.'));
         }
@@ -309,7 +329,7 @@ class _CommunityMembersView extends ConsumerWidget {
           itemBuilder: (context, index) {
             final member = regularMembers[index];
             final userAsync = ref.watch(userProvider(member.userId));
-            
+
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
               title: userAsync.when(
@@ -317,16 +337,18 @@ class _CommunityMembersView extends ConsumerWidget {
                 loading: () => const Text('Loading...'),
                 error: (_, __) => const Text('Error loading user'),
               ),
-              onTap: userAsync.value != null ? () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => UserProfileScreen(
-                      user: userAsync.value!,
-                      membership: member,
-                    ),
-                  ),
-                );
-              } : null,
+              onTap: userAsync.value != null
+                  ? () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => UserProfileScreen(
+                            user: userAsync.value!,
+                            membership: member,
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
             );
           },
         );
@@ -343,11 +365,14 @@ class _CommunityRequestsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(communityPendingRequestsProvider(community.id));
+    final requestsAsync = ref.watch(
+      communityPendingRequestsProvider(community.id),
+    );
 
     return requestsAsync.when(
       data: (requests) {
-        if (requests.isEmpty) return const Center(child: Text('No pending requests.'));
+        if (requests.isEmpty)
+          return const Center(child: Text('No pending requests.'));
 
         return ListView.builder(
           itemCount: requests.length,
@@ -362,34 +387,40 @@ class _CommunityRequestsView extends ConsumerWidget {
                 loading: () => const Text('Loading...'),
                 error: (_, __) => const Text('Error loading user'),
               ),
-              onTap: userAsync.value != null ? () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => UserProfileScreen(
-                      user: userAsync.value!,
-                      membership: request,
-                    ),
-                  ),
-                );
-              } : null,
+              onTap: userAsync.value != null
+                  ? () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => UserProfileScreen(
+                            user: userAsync.value!,
+                            membership: request,
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(
-                      request.id, 
-                      MembershipStatus.approved,
-                      communityName: community.name,
-                    ),
+                    onPressed: () => ref
+                        .read(communityRepositoryProvider)
+                        .updateMembershipStatus(
+                          request.id,
+                          MembershipStatus.approved,
+                          communityName: community.name,
+                        ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () => ref.read(communityRepositoryProvider).updateMembershipStatus(
-                      request.id, 
-                      MembershipStatus.rejected,
-                      communityName: community.name,
-                    ),
+                    onPressed: () => ref
+                        .read(communityRepositoryProvider)
+                        .updateMembershipStatus(
+                          request.id,
+                          MembershipStatus.rejected,
+                          communityName: community.name,
+                        ),
                   ),
                 ],
               ),
@@ -399,6 +430,246 @@ class _CommunityRequestsView extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _FilterButton extends ConsumerWidget {
+  final String communityId;
+  const _FilterButton({required this.communityId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusFilter = ref.watch(communityLibraryStatusProvider);
+    final sortOption = ref.watch(communityLibrarySortProvider);
+    final viewMode = ref.watch(communityLibraryViewModeProvider);
+
+    final bool hasActiveFilters = statusFilter != CommunityLibraryStatus.all;
+
+    return IconButton.filledTonal(
+      icon: Badge(
+        isLabelVisible: hasActiveFilters,
+        child: const Icon(Icons.tune_rounded),
+      ),
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          useSafeArea: true,
+          isScrollControlled: true,
+          builder: (context) => _FilterSheet(communityId: communityId),
+        );
+      },
+      tooltip: 'Filters',
+    );
+  }
+}
+
+class _FilterSheet extends ConsumerWidget {
+  final String communityId;
+  const _FilterSheet({required this.communityId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusFilter = ref.watch(communityLibraryStatusProvider);
+    final sortOption = ref.watch(communityLibrarySortProvider);
+    final viewMode = ref.watch(communityLibraryViewModeProvider);
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text('Filters & Sorting', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 24),
+
+          Text('Status', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: CommunityLibraryStatus.values.map((status) {
+              return ChoiceChip(
+                label: Text(
+                  status.name[0].toUpperCase() + status.name.substring(1),
+                ),
+                selected: statusFilter == status,
+                onSelected: (selected) {
+                  if (selected)
+                    ref
+                        .read(communityLibraryStatusProvider.notifier)
+                        .set(status);
+                },
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 24),
+          Text('Sort By', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<CommunityLibrarySort>(
+            value: sortOption,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: CommunityLibrarySort.recentlyAdded,
+                child: Text('Recently Added'),
+              ),
+              DropdownMenuItem(
+                value: CommunityLibrarySort.titleAZ,
+                child: Text('Title A-Z'),
+              ),
+              DropdownMenuItem(
+                value: CommunityLibrarySort.titleZA,
+                child: Text('Title Z-A'),
+              ),
+            ],
+            onChanged: (val) {
+              if (val != null)
+                ref.read(communityLibrarySortProvider.notifier).set(val);
+            },
+          ),
+
+          const SizedBox(height: 24),
+          Text('View Mode', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 12),
+          SegmentedButton<BookshelfViewMode>(
+            segments: const [
+              ButtonSegment(
+                value: BookshelfViewMode.grid,
+                label: Text('Grid'),
+                icon: Icon(Icons.grid_view_rounded),
+              ),
+              ButtonSegment(
+                value: BookshelfViewMode.list,
+                label: Text('List'),
+                icon: Icon(Icons.view_list_rounded),
+              ),
+            ],
+            selected: {viewMode},
+            onSelectionChanged: (newSelection) {
+              ref
+                  .read(communityLibraryViewModeProvider.notifier)
+                  .set(newSelection.first);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommunityBookGridItem extends StatelessWidget {
+  final CommunityLibraryItem item;
+
+  const _CommunityBookGridItem({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final book = item.book;
+    final isUnavailable = item.isUnavailable;
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => BookDetailsScreen(book: book)),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(20),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Opacity(
+                      opacity: isUnavailable ? 0.6 : 1.0,
+                      child: BookCover(
+                        url: book.coverUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        useCache: true,
+                      ),
+                    ),
+                  ),
+                ),
+                // Status Badges
+                if (isUnavailable)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(200),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(30),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.remove_circle_outline,
+                        color: Colors.grey,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            book.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: isUnavailable ? Colors.grey : null,
+            ),
+          ),
+          Text(
+            book.author,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[600],
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

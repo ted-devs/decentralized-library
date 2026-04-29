@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 import '../domain/community.dart';
 import '../domain/membership.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
@@ -303,6 +304,14 @@ class CommunityLibraryStatusNotifier extends Notifier<CommunityLibraryStatus> {
   void set(CommunityLibraryStatus value) => state = value;
 }
 final communityLibraryStatusProvider = NotifierProvider<CommunityLibraryStatusNotifier, CommunityLibraryStatus>(() => CommunityLibraryStatusNotifier());
+
+class CommunityLibraryViewModeNotifier extends Notifier<BookshelfViewMode> {
+  @override
+  BookshelfViewMode build() => BookshelfViewMode.grid;
+  void toggle() => state = state == BookshelfViewMode.grid ? BookshelfViewMode.list : BookshelfViewMode.grid;
+  void set(BookshelfViewMode mode) => state = mode;
+}
+final communityLibraryViewModeProvider = NotifierProvider<CommunityLibraryViewModeNotifier, BookshelfViewMode>(() => CommunityLibraryViewModeNotifier());
 
 final filteredCommunityLibraryProvider = Provider.family<AsyncValue<List<CommunityLibraryItem>>, String>((ref, communityId) {
   final libraryAsync = ref.watch(communityLibraryProvider(communityId));

@@ -17,20 +17,7 @@ class BookshelfScreen extends ConsumerWidget {
     final statusFilter = ref.watch(bookshelfStatusProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Bookshelf'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              ref.watch(bookshelfViewModeProvider) == BookshelfViewMode.grid
-                  ? Icons.view_list_rounded
-                  : Icons.grid_view_rounded,
-            ),
-            onPressed: () => ref.read(bookshelfViewModeProvider.notifier).toggle(),
-            tooltip: 'Toggle view mode',
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('My Bookshelf')),
       floatingActionButton: ExpandableFab(
         distance: 60,
         children: [
@@ -38,9 +25,9 @@ class BookshelfScreen extends ConsumerWidget {
             icon: const Icon(Icons.search),
             label: 'Search & Add',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AddBookScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const AddBookScreen()));
             },
           ),
           ActionButton(
@@ -56,71 +43,38 @@ class BookshelfScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // Search Bar
+          // Search and Filters
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search title or author...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => ref.read(bookshelfSearchQueryProvider.notifier).set(''),
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-              onChanged: (value) => ref.read(bookshelfSearchQueryProvider.notifier).set(value),
-            ),
-          ),
-          
-          // Filters and Sorts
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                // Status Dropdown / Chips
-                const Text('Status: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                DropdownButton<BookshelfStatus>(
-                  value: statusFilter,
-                  underline: const SizedBox(),
-                  onChanged: (BookshelfStatus? newValue) {
-                    if (newValue != null) {
-                      ref.read(bookshelfStatusProvider.notifier).set(newValue);
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(value: BookshelfStatus.all, child: Text('All')),
-                    DropdownMenuItem(value: BookshelfStatus.available, child: Text('Available')),
-                    DropdownMenuItem(value: BookshelfStatus.borrowed, child: Text('Borrowed')),
-                    DropdownMenuItem(value: BookshelfStatus.lent, child: Text('Lent')),
-                  ],
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search title or author...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => ref
+                                  .read(bookshelfSearchQueryProvider.notifier)
+                                  .set(''),
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (value) => ref
+                        .read(bookshelfSearchQueryProvider.notifier)
+                        .set(value),
+                  ),
                 ),
-                const SizedBox(width: 16),
-                const Text('Sort: ', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(width: 8),
-                DropdownButton<BookshelfSort>(
-                  value: sortOption,
-                  underline: const SizedBox(),
-                  onChanged: (BookshelfSort? newValue) {
-                    if (newValue != null) {
-                      ref.read(bookshelfSortProvider.notifier).set(newValue);
-                    }
-                  },
-                  items: const [
-                    DropdownMenuItem(value: BookshelfSort.recentlyAdded, child: Text('Recently Added')),
-                    DropdownMenuItem(value: BookshelfSort.titleAZ, child: Text('Title A-Z')),
-                    DropdownMenuItem(value: BookshelfSort.titleZA, child: Text('Title Z-A')),
-                  ],
-                ),
+                _BookshelfFilterButton(),
               ],
             ),
           ),
@@ -135,16 +89,26 @@ class BookshelfScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.library_books_outlined, size: 64, color: Colors.grey[400]),
+                        Icon(
+                          Icons.library_books_outlined,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
                         const SizedBox(height: 16),
-                        Text(searchQuery.isNotEmpty || statusFilter != BookshelfStatus.all 
-                          ? 'No books match your filters.' 
-                          : 'Your bookshelf is empty.'),
-                        if (searchQuery.isEmpty && statusFilter == BookshelfStatus.all)
+                        Text(
+                          searchQuery.isNotEmpty ||
+                                  statusFilter != BookshelfStatus.all
+                              ? 'No books match your filters.'
+                              : 'Your bookshelf is empty.',
+                        ),
+                        if (searchQuery.isEmpty &&
+                            statusFilter == BookshelfStatus.all)
                           TextButton(
                             onPressed: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const AddBookScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => const AddBookScreen(),
+                                ),
                               );
                             },
                             child: const Text('Add your first book'),
@@ -159,12 +123,13 @@ class BookshelfScreen extends ConsumerWidget {
                 if (viewMode == BookshelfViewMode.grid) {
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(12, 16, 12, 100),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      childAspectRatio: 0.58,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 16,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 0.58,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
@@ -183,13 +148,18 @@ class BookshelfScreen extends ConsumerWidget {
 
                     return Card(
                       elevation: 0,
-                      color: isLentOrNotShared ? Colors.grey.withAlpha(50) : null,
+                      color: isLentOrNotShared
+                          ? Colors.grey.withAlpha(50)
+                          : null,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(color: Colors.grey.withAlpha(30)),
                       ),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: Opacity(
@@ -220,18 +190,27 @@ class BookshelfScreen extends ConsumerWidget {
                             if (item.transaction?.isOverdue() == true)
                               const Padding(
                                 padding: EdgeInsets.only(right: 4.0),
-                                child: Icon(Icons.warning_amber_rounded,
-                                    color: Colors.orange, size: 20),
+                                child: Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
                               ),
                             if (item.isBorrowed)
-                              const Icon(Icons.add_circle_outline,
-                                  color: Colors.green),
+                              const Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.green,
+                              ),
                             if (item.isLent)
-                              const Icon(Icons.remove_circle_outline,
-                                  color: Colors.red)
+                              const Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.red,
+                              )
                             else if (!book.isShareable)
-                              const Icon(Icons.visibility_off_outlined,
-                                  color: Colors.grey),
+                              const Icon(
+                                Icons.visibility_off_outlined,
+                                color: Colors.grey,
+                              ),
                             const SizedBox(width: 8),
                             const Icon(Icons.chevron_right),
                           ],
@@ -239,7 +218,10 @@ class BookshelfScreen extends ConsumerWidget {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => BookDetailsScreen(book: book, transaction: item.transaction),
+                              builder: (_) => BookDetailsScreen(
+                                book: book,
+                                transaction: item.transaction,
+                              ),
                             ),
                           );
                         },
@@ -251,6 +233,136 @@ class BookshelfScreen extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, st) => Center(child: Text('Error: $e')),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookshelfFilterButton extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusFilter = ref.watch(bookshelfStatusProvider);
+    final hasActiveFilters = statusFilter != BookshelfStatus.all;
+
+    return IconButton.filledTonal(
+      icon: Badge(
+        isLabelVisible: hasActiveFilters,
+        child: const Icon(Icons.tune_rounded),
+      ),
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          useSafeArea: true,
+          isScrollControlled: true,
+          builder: (context) => const _BookshelfFilterSheet(),
+        );
+      },
+      tooltip: 'Filters',
+    );
+  }
+}
+
+class _BookshelfFilterSheet extends ConsumerWidget {
+  const _BookshelfFilterSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusFilter = ref.watch(bookshelfStatusProvider);
+    final sortOption = ref.watch(bookshelfSortProvider);
+    final viewMode = ref.watch(bookshelfViewModeProvider);
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text('Filters & Sorting', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 24),
+
+          Text('Status', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: BookshelfStatus.values.map((status) {
+              return ChoiceChip(
+                label: Text(
+                  status.name[0].toUpperCase() + status.name.substring(1),
+                ),
+                selected: statusFilter == status,
+                onSelected: (selected) {
+                  if (selected)
+                    ref.read(bookshelfStatusProvider.notifier).set(status);
+                },
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 24),
+          Text('Sort By', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<BookshelfSort>(
+            value: sortOption,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: BookshelfSort.recentlyAdded,
+                child: Text('Recently Added'),
+              ),
+              DropdownMenuItem(
+                value: BookshelfSort.titleAZ,
+                child: Text('Title A-Z'),
+              ),
+              DropdownMenuItem(
+                value: BookshelfSort.titleZA,
+                child: Text('Title Z-A'),
+              ),
+            ],
+            onChanged: (val) {
+              if (val != null)
+                ref.read(bookshelfSortProvider.notifier).set(val);
+            },
+          ),
+
+          const SizedBox(height: 24),
+          Text('View Mode', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 12),
+          SegmentedButton<BookshelfViewMode>(
+            segments: const [
+              ButtonSegment(
+                value: BookshelfViewMode.grid,
+                label: Text('Grid'),
+                icon: Icon(Icons.grid_view_rounded),
+              ),
+              ButtonSegment(
+                value: BookshelfViewMode.list,
+                label: Text('List'),
+                icon: Icon(Icons.view_list_rounded),
+              ),
+            ],
+            selected: {viewMode},
+            onSelectionChanged: (newSelection) {
+              ref
+                  .read(bookshelfViewModeProvider.notifier)
+                  .set(newSelection.first);
+            },
           ),
         ],
       ),
@@ -273,7 +385,8 @@ class _BookGridItem extends StatelessWidget {
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => BookDetailsScreen(book: book, transaction: item.transaction),
+            builder: (_) =>
+                BookDetailsScreen(book: book, transaction: item.transaction),
           ),
         );
       },
@@ -388,10 +501,7 @@ class _StatusBadge extends StatelessWidget {
         color: Colors.white.withAlpha(200),
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(30),
-            blurRadius: 4,
-          ),
+          BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 4),
         ],
       ),
       child: Icon(icon, color: color, size: 16),

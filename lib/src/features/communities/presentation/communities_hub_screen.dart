@@ -43,7 +43,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
               final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
               final joinedCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.approved && c.adminId != user?.uid).toList();
               final pendingCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.pending).toList();
-              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id) && c.adminId != user?.uid).toList();
+              final otherCommunities = allCommunities.where((c) => !membershipMap.containsKey(c.id) && c.adminId != user?.uid && c.isPublic).toList();
 
               return ListView(
                 padding: const EdgeInsets.all(16),

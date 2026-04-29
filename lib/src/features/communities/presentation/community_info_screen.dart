@@ -171,6 +171,29 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                 ),
                 const SizedBox(height: 24),
 
+                // Location & Details
+                Text(
+                  'Details',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.location_on_outlined),
+                  title: Text('${widget.community.city}, ${widget.community.country}'),
+                  dense: true,
+                ),
+                if (widget.community.organization != null && widget.community.organization!.isNotEmpty)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.business_outlined),
+                    title: Text(widget.community.organization!),
+                    dense: true,
+                  ),
+                const SizedBox(height: 24),
+
                 // Admin Info
                 ListTile(
                   contentPadding: EdgeInsets.zero,

@@ -5,6 +5,9 @@ class Community {
   final String adminId;
   final bool isPublic;
   final String? rules;
+  final String country;
+  final String city;
+  final String? organization;
 
   Community({
     required this.id,
@@ -12,7 +15,10 @@ class Community {
     required this.description,
     required this.adminId,
     required this.isPublic,
+    required this.country,
+    required this.city,
     this.rules,
+    this.organization,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +28,9 @@ class Community {
       'adminId': adminId,
       'isPublic': isPublic,
       'rules': rules,
+      'country': country,
+      'city': city,
+      'organization': organization,
     };
   }
 
@@ -33,6 +42,9 @@ class Community {
       adminId: map['adminId'] ?? '',
       isPublic: map['isPublic'] ?? true,
       rules: map['rules'],
+      country: map['country'] ?? '',
+      city: map['city'] ?? '',
+      organization: map['organization'],
     );
   }
 }

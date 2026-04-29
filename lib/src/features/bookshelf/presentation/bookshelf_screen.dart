@@ -187,12 +187,21 @@ class BookshelfScreen extends ConsumerWidget {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (item.transaction?.isOverdue() == true)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 4.0),
+                                child: Icon(Icons.warning_amber_rounded,
+                                    color: Colors.orange, size: 20),
+                              ),
                             if (item.isBorrowed)
-                              const Icon(Icons.add_circle_outline, color: Colors.green),
+                              const Icon(Icons.add_circle_outline,
+                                  color: Colors.green),
                             if (item.isLent)
-                              const Icon(Icons.remove_circle_outline, color: Colors.red)
+                              const Icon(Icons.remove_circle_outline,
+                                  color: Colors.red)
                             else if (!book.isShareable)
-                              const Icon(Icons.visibility_off_outlined, color: Colors.grey),
+                              const Icon(Icons.visibility_off_outlined,
+                                  color: Colors.grey),
                             const SizedBox(width: 8),
                             const Icon(Icons.chevron_right),
                           ],

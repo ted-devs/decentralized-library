@@ -249,6 +249,7 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
   }
 
   String _getStatusLabel(TransactionStatus status) {
+    if (widget.transaction?.isOverdue() == true) return 'OVERDUE';
     switch (status) {
       case TransactionStatus.requested: return 'Request Pending';
       case TransactionStatus.approved: return 'Awaiting Pickup';
@@ -364,23 +365,55 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
                       const Divider(),
                     ],
                     if (transaction != null) ...[
-                      Text('Transaction Status',
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      Card(
-                        color: theme.colorScheme.primaryContainer.withAlpha(50),
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primaryContainer.withOpacity(0.2),
+                              theme.colorScheme.surface,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                  'Status: ${_getStatusLabel(transaction.status)}'
-                                      .toUpperCase(),
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.primary)),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Status: ${_getStatusLabel(transaction.status)}'
+                                        .toUpperCase(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                      letterSpacing: 1.2,
+                                      color: transaction.isOverdue()
+                                          ? Colors.orange[800]
+                                          : theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                  if (transaction.isOverdue())
+                                    Icon(Icons.warning_amber_rounded,
+                                        color: Colors.orange[800], size: 18),
+                                ],
+                              ),
                               const Divider(height: 24),
                               const Text('Coordination Details:',
                                   style: TextStyle(fontWeight: FontWeight.bold)),

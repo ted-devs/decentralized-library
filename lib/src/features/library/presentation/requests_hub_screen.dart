@@ -291,8 +291,9 @@ class _TransactionTile extends ConsumerWidget {
     // We need to fetch the book details to show the title
     final bookAsync = ref.watch(bookProvider(transaction.bookId));
 
-    String _getStatusLabel(TransactionStatus status) {
-      switch (status) {
+    String _getStatusLabel(BookTransaction t) {
+      if (t.isOverdue()) return 'OVERDUE';
+      switch (t.status) {
         case TransactionStatus.requested: return 'Request Pending';
         case TransactionStatus.approved: return 'Awaiting Pickup';
         case TransactionStatus.pickedUp: return 'On Loan';
@@ -346,7 +347,7 @@ class _TransactionTile extends ConsumerWidget {
             useCache: true,
           ),
           title: Text(book.title),
-          subtitle: Text('Status: ${_getStatusLabel(transaction.status)}'),
+          subtitle: Text('Status: ${_getStatusLabel(transaction)}'),
           trailing: (transaction.status == TransactionStatus.canceled || 
                      transaction.status == TransactionStatus.returned)
             ? IconButton(

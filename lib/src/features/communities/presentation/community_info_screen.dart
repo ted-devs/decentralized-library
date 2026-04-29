@@ -133,8 +133,10 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                 const SizedBox(height: 8),
 
                 // Stats Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     _buildStatChip(
                       context,
@@ -146,7 +148,6 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                         error: (_, __) => '?',
                       ),
                     ),
-                    const SizedBox(width: 12),
                     _buildStatChip(
                       context,
                       Icons.menu_book_rounded,
@@ -158,6 +159,15 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                             loading: () => '...',
                             error: (_, __) => '?',
                           ),
+                    ),
+                    _buildStatChip(
+                      context,
+                      community.isPublic ? Icons.public : Icons.lock_outline,
+                      community.isPublic ? 'Public' : 'Private',
+                      color: community.isPublic
+                          ? Colors.green.withAlpha(40)
+                          : Colors.orange.withAlpha(40),
+                      textColor: community.isPublic ? Colors.green : Colors.orange,
                     ),
                   ],
                 ),
@@ -300,11 +310,18 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
     );
   }
 
-  Widget _buildStatChip(BuildContext context, IconData icon, String label) {
+  Widget _buildStatChip(
+    BuildContext context,
+    IconData icon,
+    String label, {
+    Color? color,
+    Color? textColor,
+  }) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: color ?? theme.colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -313,14 +330,15 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
           Icon(
             icon,
             size: 16,
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            color: textColor ?? theme.colorScheme.onPrimaryContainer,
           ),
           const SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              color: textColor ?? theme.colorScheme.onPrimaryContainer,
               fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
         ],

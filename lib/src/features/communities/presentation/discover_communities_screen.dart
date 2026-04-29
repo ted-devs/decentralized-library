@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:decentralized_library/src/features/communities/data/community_repository.dart';
 import 'package:decentralized_library/src/features/auth/application/auth_service.dart';
+import 'package:decentralized_library/src/features/communities/domain/membership.dart';
 import 'community_info_screen.dart';
 
 class DiscoverCommunitiesScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,9 @@ class _DiscoverCommunitiesScreenState extends ConsumerState<DiscoverCommunitiesS
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value;
     final allCommunitiesAsync = ref.watch(allCommunitiesProvider);
+    final membershipsAsync = user != null
+        ? ref.watch(userMembershipsProvider(user.uid))
+        : const AsyncValue<List<Membership>>.data([]);
 
     return Scaffold(
       appBar: AppBar(
@@ -64,12 +68,18 @@ class _DiscoverCommunitiesScreenState extends ConsumerState<DiscoverCommunitiesS
           Expanded(
             child: allCommunitiesAsync.when(
               data: (communities) {
+                final memberships = membershipsAsync.value ?? [];
+                final joinedOrPendingIds =
+                    memberships.map((m) => m.communityId).toSet();
                 final query = _searchQuery.toLowerCase();
-                
+
                 // Filter for public communities and match search query
                 final results = communities.where((c) {
                   if (!c.isPublic) return false;
                   if (c.adminId == user?.uid) return false; // Hide if they own it
+                  if (joinedOrPendingIds.contains(c.id)) {
+                    return false; // Hide if already joined or pending
+                  }
 
                   if (query.isEmpty) return true;
 

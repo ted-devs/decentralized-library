@@ -10,6 +10,7 @@ import 'community_info_screen.dart';
 import 'create_community_screen.dart';
 import 'discover_communities_screen.dart';
 import 'package:decentralized_library/src/shared/widgets/expandable_fab.dart';
+import 'package:decentralized_library/src/shared/utils/snackbar_utils.dart';
 
 class CommunitiesHubScreen extends ConsumerWidget {
   const CommunitiesHubScreen({super.key});
@@ -46,11 +47,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
             label: 'Join by invite code',
             color: const Color(0xFF90CAF9), // Soft Pastel Blue
             foregroundColor: Colors.black87,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Coming soon!')),
-              );
-            },
+            onPressed: () => AppSnackBar.show(context, 'Coming soon!'),
           ),
           ActionButton(
             icon: const Icon(Icons.search),

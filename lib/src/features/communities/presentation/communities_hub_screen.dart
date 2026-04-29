@@ -20,33 +20,29 @@ class CommunitiesHubScreen extends ConsumerWidget {
     final user = ref.watch(authStateProvider).value;
     final appUser = ref.watch(appUserProvider).value;
     final allCommunitiesAsync = ref.watch(allCommunitiesProvider);
-    final userMembershipsAsync = user != null 
-        ? ref.watch(userMembershipsProvider(user.uid)) 
+    final userMembershipsAsync = user != null
+        ? ref.watch(userMembershipsProvider(user.uid))
         : const AsyncValue<List<Membership>>.loading();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Communities'),
-      ),
+      appBar: AppBar(title: const Text('Communities')),
       floatingActionButton: ExpandableFab(
         distance: 60.0,
         children: [
           ActionButton(
             icon: const Icon(Icons.add),
             label: 'Create a new community',
-            color: const Color(0xFF81C784), // Soft Mint Green (matched with FAB)
-            foregroundColor: Colors.black87,
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CreateCommunityScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const CreateCommunityScreen(),
+                ),
               );
             },
           ),
           ActionButton(
             icon: const Icon(Icons.group_add),
             label: 'Join by invite code',
-            color: const Color(0xFF90CAF9), // Soft Pastel Blue
-            foregroundColor: Colors.black87,
             onPressed: () => AppSnackBar.show(context, 'Coming soon!'),
           ),
           ActionButton(
@@ -54,7 +50,9 @@ class CommunitiesHubScreen extends ConsumerWidget {
             label: 'Discover more',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DiscoverCommunitiesScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const DiscoverCommunitiesScreen(),
+                ),
               );
             },
           ),
@@ -65,11 +63,30 @@ class CommunitiesHubScreen extends ConsumerWidget {
           return allCommunitiesAsync.when(
             data: (unsortedCommunities) {
               final allCommunities = List<Community>.from(unsortedCommunities)
-                ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-              final membershipMap = {for (var m in memberships) m.communityId: m};
-              final managedCommunities = allCommunities.where((c) => c.adminId == user?.uid).toList();
-              final joinedCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.approved && c.adminId != user?.uid).toList();
-              final pendingCommunities = allCommunities.where((c) => membershipMap[c.id]?.status == MembershipStatus.pending).toList();
+                ..sort(
+                  (a, b) =>
+                      a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                );
+              final membershipMap = {
+                for (var m in memberships) m.communityId: m,
+              };
+              final managedCommunities = allCommunities
+                  .where((c) => c.adminId == user?.uid)
+                  .toList();
+              final joinedCommunities = allCommunities
+                  .where(
+                    (c) =>
+                        membershipMap[c.id]?.status ==
+                            MembershipStatus.approved &&
+                        c.adminId != user?.uid,
+                  )
+                  .toList();
+              final pendingCommunities = allCommunities
+                  .where(
+                    (c) =>
+                        membershipMap[c.id]?.status == MembershipStatus.pending,
+                  )
+                  .toList();
 
               return ListView(
                 padding: const EdgeInsets.all(16),
@@ -77,19 +94,43 @@ class CommunitiesHubScreen extends ConsumerWidget {
                   if (managedCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Managed Communities'),
                     const SizedBox(height: 8),
-                    ...managedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
+                    ...managedCommunities.map(
+                      (c) => _buildCommunityCard(
+                        context,
+                        ref,
+                        c,
+                        membershipMap[c.id],
+                        appUser,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                   if (joinedCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Joined Communities'),
                     const SizedBox(height: 8),
-                    ...joinedCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
+                    ...joinedCommunities.map(
+                      (c) => _buildCommunityCard(
+                        context,
+                        ref,
+                        c,
+                        membershipMap[c.id],
+                        appUser,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                   if (pendingCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Pending Requests'),
                     const SizedBox(height: 8),
-                    ...pendingCommunities.map((c) => _buildCommunityCard(context, ref, c, membershipMap[c.id], appUser)),
+                    ...pendingCommunities.map(
+                      (c) => _buildCommunityCard(
+                        context,
+                        ref,
+                        c,
+                        membershipMap[c.id],
+                        appUser,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ],
@@ -112,7 +153,13 @@ class CommunitiesHubScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCommunityCard(BuildContext context, WidgetRef ref, Community community, Membership? membership, AppUser? appUser) {
+  Widget _buildCommunityCard(
+    BuildContext context,
+    WidgetRef ref,
+    Community community,
+    Membership? membership,
+    AppUser? appUser,
+  ) {
     final status = membership?.status;
     final isApproved = status == MembershipStatus.approved;
     final isPending = status == MembershipStatus.pending;
@@ -124,19 +171,34 @@ class CommunitiesHubScreen extends ConsumerWidget {
       child: ListTile(
         title: Row(
           children: [
-            Expanded(child: Text(community.name, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(
+              child: Text(
+                community.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
             if (community.adminId == appUser?.uid)
               Badge(
-                isLabelVisible: ref.watch(communityPendingRequestsProvider(community.id)).value?.isNotEmpty ?? false,
+                isLabelVisible:
+                    ref
+                        .watch(communityPendingRequestsProvider(community.id))
+                        .value
+                        ?.isNotEmpty ??
+                    false,
                 child: const SizedBox.shrink(),
               ),
           ],
         ),
-        subtitle: Text(community.description, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          community.description,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (appUser != null && (isApproved || community.adminId == appUser.uid))
+            if (appUser != null &&
+                (isApproved || community.adminId == appUser.uid))
               IconButton(
                 icon: Icon(
                   isPinned ? Icons.push_pin : Icons.push_pin_outlined,
@@ -145,15 +207,21 @@ class CommunitiesHubScreen extends ConsumerWidget {
                 ),
                 onPressed: () async {
                   try {
-                    await ref.read(communityRepositoryProvider).togglePinCommunity(
-                      appUser.uid,
-                      community.id,
-                      !isPinned,
-                    );
+                    await ref
+                        .read(communityRepositoryProvider)
+                        .togglePinCommunity(
+                          appUser.uid,
+                          community.id,
+                          !isPinned,
+                        );
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+                        SnackBar(
+                          content: Text(
+                            e.toString().replaceAll('Exception: ', ''),
+                          ),
+                        ),
                       );
                     }
                   }
@@ -162,25 +230,35 @@ class CommunitiesHubScreen extends ConsumerWidget {
             isApproved
                 ? const Icon(Icons.arrow_forward_ios_rounded, size: 16)
                 : isPending
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withAlpha(30),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('Pending', style: TextStyle(color: Colors.orange, fontSize: 12)),
-                      )
-                    : const Icon(Icons.info_outline_rounded, color: Colors.grey),
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Pending',
+                      style: TextStyle(color: Colors.orange, fontSize: 12),
+                    ),
+                  )
+                : const Icon(Icons.info_outline_rounded, color: Colors.grey),
           ],
         ),
         onTap: () {
           if (isApproved) {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => CommunityDetailScreen(community: community)),
+              MaterialPageRoute(
+                builder: (_) => CommunityDetailScreen(community: community),
+              ),
             );
           } else {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => CommunityInfoScreen(community: community)),
+              MaterialPageRoute(
+                builder: (_) => CommunityInfoScreen(community: community),
+              ),
             );
           }
         },

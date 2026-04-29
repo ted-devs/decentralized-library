@@ -37,7 +37,8 @@ class ExpandableFab extends StatefulWidget {
   State<ExpandableFab> createState() => _ExpandableFabState();
 }
 
-class _ExpandableFabState extends State<ExpandableFab> with SingleTickerProviderStateMixin {
+class _ExpandableFabState extends State<ExpandableFab>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _expandAnimation;
   bool _open = false;
@@ -81,10 +82,7 @@ class _ExpandableFabState extends State<ExpandableFab> with SingleTickerProvider
       child: Stack(
         alignment: Alignment.bottomRight,
         clipBehavior: Clip.none,
-        children: [
-          ..._buildExpandingActionButtons(),
-          _buildMainFab(),
-        ],
+        children: [..._buildExpandingActionButtons(), _buildMainFab()],
       ),
     );
   }
@@ -98,7 +96,9 @@ class _ExpandableFabState extends State<ExpandableFab> with SingleTickerProvider
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: _open ? const Color(0xFFE57373) : const Color(0xFF81C784), // Pastel Red / Pastel Green
+          color: _open
+              ? Theme.of(context).colorScheme.secondary
+              : Theme.of(context).colorScheme.primary,
           borderRadius: BorderRadius.circular(_open ? 28.0 : 16.0),
           boxShadow: [
             BoxShadow(
@@ -114,7 +114,9 @@ class _ExpandableFabState extends State<ExpandableFab> with SingleTickerProvider
           curve: Curves.fastOutSlowIn,
           child: Icon(
             Icons.add,
-            color: Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white,
+            color: _open
+                ? Theme.of(context).colorScheme.onSecondary
+                : Theme.of(context).colorScheme.onPrimary,
           ),
         ),
       ),
@@ -171,8 +173,6 @@ class _ExpandableFabState extends State<ExpandableFab> with SingleTickerProvider
       ],
     );
   }
-
-
 }
 
 class _ExpandingActionButton extends StatelessWidget {
@@ -203,10 +203,7 @@ class _ExpandingActionButton extends StatelessWidget {
           ),
         );
       },
-      child: FadeTransition(
-        opacity: progress,
-        child: child,
-      ),
+      child: FadeTransition(opacity: progress, child: child),
     );
   }
 }

@@ -15,6 +15,7 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final appUser = ref.watch(appUserProvider).value;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -119,17 +120,17 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           decoration: BoxDecoration(
                             color: appUser?.isAdmin == true
-                                ? Colors.deepPurple[50]
+                                ? (isDark ? Colors.deepPurple.withAlpha(40) : Colors.deepPurple[50])
                                 : appUser?.isPro == true
-                                    ? Colors.amber[100]
-                                    : Colors.grey[200],
+                                    ? (isDark ? Colors.amber.withAlpha(40) : Colors.amber[100])
+                                    : (isDark ? Colors.white10 : Colors.grey[200]),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: appUser?.isAdmin == true
-                                  ? Colors.deepPurple[700]!
+                                  ? (isDark ? Colors.deepPurple[300]! : Colors.deepPurple[700]!)
                                   : appUser?.isPro == true
-                                      ? Colors.amber[700]!
-                                      : Colors.grey[400]!,
+                                      ? (isDark ? Colors.amber[300]! : Colors.amber[700]!)
+                                      : (isDark ? Colors.white30 : Colors.grey[400]!),
                               width: 1,
                             ),
                           ),
@@ -144,10 +145,10 @@ class SettingsScreen extends ConsumerWidget {
                                         : Icons.person_outline_rounded,
                                 size: 14,
                                 color: appUser?.isAdmin == true
-                                    ? Colors.deepPurple[900]
+                                    ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple[900])
                                     : appUser?.isPro == true
-                                        ? Colors.amber[900]
-                                        : Colors.grey[700],
+                                        ? (isDark ? Colors.amber[200] : Colors.amber[900])
+                                        : (isDark ? Colors.white70 : Colors.grey[700]),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -156,10 +157,10 @@ class SettingsScreen extends ConsumerWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: appUser?.isAdmin == true
-                                      ? Colors.deepPurple[900]
+                                      ? (isDark ? Colors.deepPurple[200] : Colors.deepPurple[900])
                                       : appUser?.isPro == true
-                                          ? Colors.amber[900]
-                                          : Colors.grey[700],
+                                          ? (isDark ? Colors.amber[200] : Colors.amber[900])
+                                          : (isDark ? Colors.white70 : Colors.grey[700]),
                                   letterSpacing: 0.5,
                                 ),
                               ),

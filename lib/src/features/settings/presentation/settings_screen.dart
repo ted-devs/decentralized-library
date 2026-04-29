@@ -223,7 +223,7 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsTile(
               leading: const Icon(Icons.info_outline, color: Colors.blue),
               title: 'App Info',
-              subtitle: 'Version 1.0.0 (BETA)',
+              subtitle: 'Version 1.1.0 (BETA)',
               onTap: () {}, // Show app info details or license
             ),
             const Divider(height: 1),

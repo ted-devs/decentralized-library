@@ -636,7 +636,7 @@ class _CommunityBookGridItem extends ConsumerWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Opacity(
-                opacity: isUnavailable ? 0.6 : 1.0,
+                opacity: isUnavailable ? 0.4 : 1.0,
                 child: BookCover(
                   url: book.coverUrl,
                   width: double.infinity,
@@ -708,7 +708,7 @@ class _CommunityBookGridItem extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(200),
+                  color: Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -718,7 +718,7 @@ class _CommunityBookGridItem extends ConsumerWidget {
                   ],
                 ),
                 child: const Icon(
-                  Icons.remove_circle_outline,
+                  Icons.remove_circle,
                   color: Colors.grey,
                   size: 16,
                 ),

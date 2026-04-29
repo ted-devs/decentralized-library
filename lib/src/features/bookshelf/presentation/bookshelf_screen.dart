@@ -435,7 +435,7 @@ class _BookGridItem extends ConsumerWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Opacity(
-                opacity: isLentOrNotShared ? 0.6 : 1.0,
+                opacity: isLentOrNotShared ? 0.4 : 1.0,
                 child: BookCover(
                   url: book.coverUrl,
                   width: double.infinity,
@@ -505,7 +505,7 @@ class _BookGridItem extends ConsumerWidget {
               top: 8,
               right: 8,
               child: _StatusBadge(
-                icon: Icons.remove_circle_outline,
+                icon: Icons.remove_circle,
                 color: Colors.red,
               ),
             )
@@ -514,7 +514,7 @@ class _BookGridItem extends ConsumerWidget {
               top: 8,
               right: 8,
               child: _StatusBadge(
-                icon: Icons.add_circle_outline,
+                icon: Icons.add_circle,
                 color: Colors.green,
               ),
             )
@@ -523,7 +523,7 @@ class _BookGridItem extends ConsumerWidget {
               top: 8,
               right: 8,
               child: _StatusBadge(
-                icon: Icons.visibility_off_outlined,
+                icon: Icons.visibility_off,
                 color: Colors.grey,
               ),
             ),
@@ -533,7 +533,7 @@ class _BookGridItem extends ConsumerWidget {
               top: 8,
               left: 8,
               child: _StatusBadge(
-                icon: Icons.warning_amber_rounded,
+                icon: Icons.warning_rounded,
                 color: Colors.orange,
               ),
             ),
@@ -554,7 +554,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(200),
+        color: Colors.white,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 4),

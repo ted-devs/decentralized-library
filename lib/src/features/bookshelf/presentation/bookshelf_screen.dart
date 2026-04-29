@@ -119,17 +119,17 @@ class BookshelfScreen extends ConsumerWidget {
                 }
 
                 final viewMode = ref.watch(bookshelfViewModeProvider);
+                final gridSize = ref.watch(bookshelfGridSizeProvider);
 
                 if (viewMode == BookshelfViewMode.grid) {
                   return GridView.builder(
                     padding: const EdgeInsets.fromLTRB(12, 16, 12, 100),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 0.58,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 16,
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: gridSize == BookshelfGridSize.small ? 4 : 3,
+                      childAspectRatio: gridSize == BookshelfGridSize.small ? 0.52 : 0.58,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                    ),
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
@@ -364,22 +364,50 @@ class _BookshelfFilterSheet extends ConsumerWidget {
                   .set(newSelection.first);
             },
           ),
+
+          if (viewMode == BookshelfViewMode.grid) ...[
+            const SizedBox(height: 24),
+            Text('Grid Size', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 12),
+            SegmentedButton<BookshelfGridSize>(
+              segments: const [
+                ButtonSegment(
+                  value: BookshelfGridSize.small,
+                  label: Text('Small'),
+                  icon: Icon(Icons.grid_on_rounded),
+                ),
+                ButtonSegment(
+                  value: BookshelfGridSize.medium,
+                  label: Text('Medium'),
+                  icon: Icon(Icons.grid_view_rounded),
+                ),
+              ],
+              selected: {ref.watch(bookshelfGridSizeProvider)},
+              onSelectionChanged: (newSelection) {
+                ref
+                    .read(bookshelfGridSizeProvider.notifier)
+                    .set(newSelection.first);
+              },
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _BookGridItem extends StatelessWidget {
+class _BookGridItem extends ConsumerWidget {
   final BookshelfItem item;
 
   const _BookGridItem({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final book = item.book;
     final isLentOrNotShared = item.isLent || !book.isShareable;
     final theme = Theme.of(context);
+    final gridSize = ref.watch(bookshelfGridSizeProvider);
+    final isSmall = gridSize == BookshelfGridSize.small;
 
     return InkWell(
       onTap: () {
@@ -468,7 +496,7 @@ class _BookGridItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: isSmall ? 11 : 12,
               color: isLentOrNotShared ? Colors.grey : null,
             ),
           ),
@@ -478,7 +506,7 @@ class _BookGridItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
               color: Colors.grey[600],
-              fontSize: 10,
+              fontSize: isSmall ? 9 : 10,
             ),
           ),
         ],

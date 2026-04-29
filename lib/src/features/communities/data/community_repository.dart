@@ -313,6 +313,13 @@ class CommunityLibraryViewModeNotifier extends Notifier<BookshelfViewMode> {
 }
 final communityLibraryViewModeProvider = NotifierProvider<CommunityLibraryViewModeNotifier, BookshelfViewMode>(() => CommunityLibraryViewModeNotifier());
 
+class CommunityLibraryGridSizeNotifier extends Notifier<BookshelfGridSize> {
+  @override
+  BookshelfGridSize build() => BookshelfGridSize.medium;
+  void set(BookshelfGridSize size) => state = size;
+}
+final communityLibraryGridSizeProvider = NotifierProvider<CommunityLibraryGridSizeNotifier, BookshelfGridSize>(() => CommunityLibraryGridSizeNotifier());
+
 final filteredCommunityLibraryProvider = Provider.family<AsyncValue<List<CommunityLibraryItem>>, String>((ref, communityId) {
   final libraryAsync = ref.watch(communityLibraryProvider(communityId));
   final searchQuery = ref.watch(communityLibrarySearchQueryProvider).toLowerCase();

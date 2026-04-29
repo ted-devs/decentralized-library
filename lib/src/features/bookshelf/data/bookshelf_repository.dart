@@ -188,6 +188,7 @@ class BookshelfItem {
 enum BookshelfSort { recentlyAdded, titleAZ, titleZA }
 enum BookshelfStatus { all, available, borrowed, lent }
 enum BookshelfViewMode { list, grid }
+enum BookshelfGridSize { small, medium }
 
 class SearchQueryNotifier extends Notifier<String> {
   @override
@@ -217,6 +218,13 @@ class ViewModeNotifier extends Notifier<BookshelfViewMode> {
   void set(BookshelfViewMode mode) => state = mode;
 }
 final bookshelfViewModeProvider = NotifierProvider<ViewModeNotifier, BookshelfViewMode>(() => ViewModeNotifier());
+
+class GridSizeNotifier extends Notifier<BookshelfGridSize> {
+  @override
+  BookshelfGridSize build() => BookshelfGridSize.medium;
+  void set(BookshelfGridSize size) => state = size;
+}
+final bookshelfGridSizeProvider = NotifierProvider<GridSizeNotifier, BookshelfGridSize>(() => GridSizeNotifier());
 
 final filteredBookshelfProvider = Provider<AsyncValue<List<BookshelfItem>>>((ref) {
   final bookshelfAsync = ref.watch(bookshelfProvider);

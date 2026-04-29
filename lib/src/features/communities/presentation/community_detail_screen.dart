@@ -190,13 +190,14 @@ class _CommunityLibraryView extends ConsumerWidget {
               }
 
               final viewMode = ref.watch(communityLibraryViewModeProvider);
+              final gridSize = ref.watch(communityLibraryGridSizeProvider);
 
               if (viewMode == BookshelfViewMode.grid) {
                 return GridView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 16, 12, 100),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.58,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: gridSize == BookshelfGridSize.small ? 4 : 3,
+                    childAspectRatio: gridSize == BookshelfGridSize.small ? 0.52 : 0.58,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 16,
                   ),
@@ -567,22 +568,50 @@ class _FilterSheet extends ConsumerWidget {
                   .set(newSelection.first);
             },
           ),
+
+          if (viewMode == BookshelfViewMode.grid) ...[
+            const SizedBox(height: 24),
+            Text('Grid Size', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 12),
+            SegmentedButton<BookshelfGridSize>(
+              segments: const [
+                ButtonSegment(
+                  value: BookshelfGridSize.small,
+                  label: Text('Small'),
+                  icon: Icon(Icons.grid_on_rounded),
+                ),
+                ButtonSegment(
+                  value: BookshelfGridSize.medium,
+                  label: Text('Medium'),
+                  icon: Icon(Icons.grid_view_rounded),
+                ),
+              ],
+              selected: {ref.watch(communityLibraryGridSizeProvider)},
+              onSelectionChanged: (newSelection) {
+                ref
+                    .read(communityLibraryGridSizeProvider.notifier)
+                    .set(newSelection.first);
+              },
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _CommunityBookGridItem extends StatelessWidget {
+class _CommunityBookGridItem extends ConsumerWidget {
   final CommunityLibraryItem item;
 
   const _CommunityBookGridItem({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final book = item.book;
     final isUnavailable = item.isUnavailable;
     final theme = Theme.of(context);
+    final gridSize = ref.watch(communityLibraryGridSizeProvider);
+    final isSmall = gridSize == BookshelfGridSize.small;
 
     return InkWell(
       onTap: () {
@@ -655,7 +684,7 @@ class _CommunityBookGridItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: isSmall ? 11 : 12,
               color: isUnavailable ? Colors.grey : null,
             ),
           ),
@@ -665,7 +694,7 @@ class _CommunityBookGridItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
               color: Colors.grey[600],
-              fontSize: 10,
+              fontSize: isSmall ? 9 : 10,
             ),
           ),
         ],

@@ -39,6 +39,164 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
     }
   }
 
+  Future<void> _showEditDialog(Book book) async {
+    final titleCtrl = TextEditingController(text: book.title);
+    final authorCtrl = TextEditingController(text: book.author);
+    final descCtrl = TextEditingController(text: book.description ?? '');
+    final coverCtrl = TextEditingController(text: book.coverUrl ?? '');
+    final publisherCtrl = TextEditingController(text: book.publisher ?? '');
+    final yearCtrl = TextEditingController(text: book.publishedYear ?? '');
+    final langCtrl = TextEditingController(text: book.language ?? '');
+    final isbnCtrl = TextEditingController(text: book.isbn ?? '');
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                16, 16, 16,
+                MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Edit Book',
+                            style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: titleCtrl,
+                        decoration: const InputDecoration(labelText: 'Title *', border: OutlineInputBorder()),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Title is required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: authorCtrl,
+                        decoration: const InputDecoration(labelText: 'Author *', border: OutlineInputBorder()),
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Author is required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: descCtrl,
+                        decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: coverCtrl,
+                        decoration: const InputDecoration(labelText: 'Cover URL', border: OutlineInputBorder()),
+                        keyboardType: TextInputType.url,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: publisherCtrl,
+                              decoration: const InputDecoration(labelText: 'Publisher', border: OutlineInputBorder()),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: yearCtrl,
+                              decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: langCtrl,
+                              decoration: const InputDecoration(labelText: 'Language', border: OutlineInputBorder()),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: isbnCtrl,
+                              decoration: const InputDecoration(labelText: 'ISBN', border: OutlineInputBorder()),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  if (!formKey.currentState!.validate()) return;
+                                  setSheetState(() => isSaving = true);
+                                  try {
+                                    await ref.read(bookshelfRepositoryProvider).updateBook(
+                                      book.id,
+                                      title: titleCtrl.text.trim(),
+                                      author: authorCtrl.text.trim(),
+                                      description: descCtrl.text.trim().isEmpty ? null : descCtrl.text.trim(),
+                                      coverUrl: coverCtrl.text.trim().isEmpty ? null : coverCtrl.text.trim(),
+                                      publisher: publisherCtrl.text.trim().isEmpty ? null : publisherCtrl.text.trim(),
+                                      publishedYear: yearCtrl.text.trim().isEmpty ? null : yearCtrl.text.trim(),
+                                      language: langCtrl.text.trim().isEmpty ? null : langCtrl.text.trim(),
+                                      isbn: isbnCtrl.text.trim().isEmpty ? null : isbnCtrl.text.trim(),
+                                    );
+                                    if (ctx.mounted) {
+                                      Navigator.pop(ctx);
+                                      AppSnackBar.show(context, 'Book updated!');
+                                    }
+                                  } catch (e) {
+                                    if (ctx.mounted) {
+                                      AppSnackBar.show(context, 'Error: $e');
+                                    }
+                                    setSheetState(() => isSaving = false);
+                                  }
+                                },
+                          child: isSaving
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Text('Save Changes'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _removeBook() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -282,11 +440,17 @@ class _BookDetailsScreenState extends ConsumerState<BookDetailsScreen> {
               appBar: AppBar(
                 title: Text(isPreview ? 'Preview Book' : 'Book Details'),
                 actions: [
-                  if (isOwner && transaction == null)
+                  if (isOwner && transaction == null) ...[  
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: _isLoading ? null : () => _showEditDialog(book),
+                      tooltip: 'Edit Book',
+                    ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                       onPressed: _isLoading ? null : _removeBook,
                     ),
+                  ],
                 ],
               ),
               body: SingleChildScrollView(

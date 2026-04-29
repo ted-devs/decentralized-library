@@ -85,6 +85,28 @@ class BookshelfRepository {
     await _firestore.collection('books').doc(bookId).update({'isShareable': isShareable});
   }
 
+  Future<void> updateBook(String bookId, {
+    required String title,
+    required String author,
+    String? description,
+    String? coverUrl,
+    String? publisher,
+    String? publishedYear,
+    String? language,
+    String? isbn,
+  }) async {
+    await _firestore.collection('books').doc(bookId).update({
+      'title': title,
+      'author': author,
+      'description': description,
+      'coverUrl': coverUrl,
+      'publisher': publisher,
+      'publishedYear': publishedYear,
+      'language': language,
+      'isbn': isbn,
+    });
+  }
+
   Future<void> removeBook(String bookId) async {
     final active = await _firestore
         .collection('transactions')

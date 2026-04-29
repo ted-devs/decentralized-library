@@ -67,6 +67,22 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
+                  if (appUser?.phoneNumber.isNotEmpty == true) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.phone_outlined, size: 14, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          appUser!.phoneNumber,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   // Actions Row: Edit Profile and Membership
                   Row(
@@ -79,6 +95,7 @@ class SettingsScreen extends ConsumerWidget {
                           appUser?.displayName ?? '',
                           appUser?.city ?? '',
                           appUser?.country ?? '',
+                          appUser?.phoneNumber ?? '',
                         ),
                         icon: const Icon(Icons.edit, size: 14),
                         label: const Text('Edit Profile'),
@@ -226,9 +243,11 @@ class SettingsScreen extends ConsumerWidget {
     String currentName,
     String currentCity,
     String currentCountry,
+    String currentPhone,
   ) {
     final nameController = TextEditingController(text: currentName);
     final cityController = TextEditingController(text: currentCity);
+    final phoneController = TextEditingController(text: currentPhone);
     String selectedCountry = currentCountry;
 
     showDialog(
@@ -257,6 +276,15 @@ class SettingsScreen extends ConsumerWidget {
                     .toList(),
                 onChanged: (val) => selectedCountry = val ?? '',
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  hintText: '+1 234 567 8900',
+                ),
+                keyboardType: TextInputType.phone,
+              ),
             ],
           ),
         ),
@@ -272,6 +300,7 @@ class SettingsScreen extends ConsumerWidget {
                 nameController.text,
                 cityController.text,
                 selectedCountry,
+                phoneController.text,
               );
               Navigator.pop(context);
             },
@@ -578,6 +607,7 @@ class SettingsScreen extends ConsumerWidget {
     String newName,
     String newCity,
     String newCountry,
+    String newPhone,
   ) async {
     final user = ref.read(appUserProvider).value;
     if (user == null) return;
@@ -585,6 +615,7 @@ class SettingsScreen extends ConsumerWidget {
       'displayName': newName,
       'city': newCity,
       'country': newCountry,
+      'phoneNumber': newPhone,
     });
   }
 }

@@ -18,6 +18,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _displayNameController;
   final _cityController = TextEditingController();
+  final _phoneController = TextEditingController();
   String? _selectedCountry;
   bool _isLoading = false;
 
@@ -31,6 +32,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void dispose() {
     _displayNameController.dispose();
     _cityController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -49,6 +51,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         email: user.email ?? '',
         displayName: _displayNameController.text.trim(),
         photoUrl: user.photoURL ?? '',
+        phoneNumber: _phoneController.text.trim(),
         city: _cityController.text.trim(),
         country: _selectedCountry!,
         createdAt: DateTime.now(),
@@ -158,6 +161,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                     validator: (value) =>
                         value == null || value.isEmpty ? 'Please enter your city' : null,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Phone Number Field (Optional)
+                  TextFormField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number (Optional)',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                      hintText: '+1 234 567 8900',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 32),
                   

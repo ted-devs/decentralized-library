@@ -63,6 +63,30 @@ class UserProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            if (user.phoneNumber.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => _launchPhone(context),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone_outlined, size: 16, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        user.phoneNumber,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 32),
             
             // Stats Row
@@ -155,6 +179,28 @@ class UserProfileScreen extends ConsumerWidget {
     } else {
       if (context.mounted) {
         AppSnackBar.show(context, 'Could not open email app.');
+      }
+    }
+  }
+
+  Future<void> _launchPhone(BuildContext context) async {
+    // Remove spaces and common formatting characters for the tel: URI
+    final String sanitizedPhone = user.phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (sanitizedPhone.isEmpty) {
+      AppSnackBar.show(context, 'Invalid phone number.');
+      return;
+    }
+    final Uri phoneUri = Uri.parse('tel:$sanitizedPhone');
+    
+    try {
+      // Try launching directly as canLaunchUrl can sometimes be too strict on mobile
+      final bool launched = await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        AppSnackBar.show(context, 'Could not open phone app.');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        AppSnackBar.show(context, 'Could not open phone app.');
       }
     }
   }

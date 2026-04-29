@@ -14,6 +14,7 @@ class AppUser {
   final String email;
   final String displayName;
   final String photoUrl;
+  final String phoneNumber;
   final String city;
   final String country;
   final bool isPro;
@@ -30,6 +31,7 @@ class AppUser {
     required this.city,
     required this.country,
     required this.createdAt,
+    this.phoneNumber = '',
     this.isPro = false,
     this.isAdmin = false,
     this.publicContactInfo = false,
@@ -48,6 +50,7 @@ class AppUser {
       'email': email,
       'displayName': displayName,
       'photoUrl': photoUrl,
+      'phoneNumber': phoneNumber,
       'city': city,
       'country': country,
       'isPro': isPro,
@@ -64,6 +67,7 @@ class AppUser {
       email: map['email'] ?? '',
       displayName: map['displayName'] ?? '',
       photoUrl: map['photoUrl'] ?? '',
+      phoneNumber: map['phoneNumber'] ?? '',
       city: map['city'] ?? '',
       country: map['country'] ?? '',
       isPro: map['isPro'] ?? false,

@@ -209,7 +209,7 @@ class _CommunityInfoScreenState extends ConsumerState<CommunityInfoScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.location_on_outlined),
-                  title: Text('${community.city}, ${community.country}'),
+                  title: Text('${community.country}, ${community.city}'),
                   dense: true,
                 ),
                 if (community.organization != null && community.organization!.isNotEmpty)

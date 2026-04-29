@@ -58,7 +58,7 @@ class SettingsScreen extends ConsumerWidget {
                   if (appUser?.city.isNotEmpty == true) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '${appUser!.city}, ${appUser.country}',
+                      '${appUser!.country}, ${appUser.city}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.primary.withAlpha(180),
                         letterSpacing: 0.5,

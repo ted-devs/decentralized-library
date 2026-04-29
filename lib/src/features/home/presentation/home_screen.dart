@@ -56,7 +56,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             if (appUser != null && appUser.city.isNotEmpty)
               Text(
-                '${appUser.city}, ${appUser.country}',
+                '${appUser.country}, ${appUser.city}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[600],
                 ),

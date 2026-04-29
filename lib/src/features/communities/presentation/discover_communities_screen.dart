@@ -120,7 +120,7 @@ class _DiscoverCommunitiesScreenState extends ConsumerState<DiscoverCommunitiesS
                           ),
                         ),
                         title: Text(community.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${community.city}, ${community.country}'),
+                        subtitle: Text('${community.country}, ${community.city}'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           Navigator.of(context).push(

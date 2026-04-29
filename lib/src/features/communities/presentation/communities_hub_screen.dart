@@ -89,7 +89,7 @@ class CommunitiesHubScreen extends ConsumerWidget {
                   .toList();
 
               return ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
                 children: [
                   if (managedCommunities.isNotEmpty) ...[
                     _buildSectionHeader('Managed Communities'),

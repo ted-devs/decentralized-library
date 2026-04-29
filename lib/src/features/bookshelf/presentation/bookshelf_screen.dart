@@ -144,7 +144,7 @@ class BookshelfScreen extends ConsumerWidget {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
